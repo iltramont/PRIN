@@ -2,3 +2,5 @@ ipykernel
 python-dotenv
 numpy
 pandas
+tensorflow
+transformers
