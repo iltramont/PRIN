@@ -10,6 +10,14 @@ from utils_generazione_referti import genera_multipli_referti_con_uguale_gendict
 from dotenv import load_dotenv
 from google import genai
 
+
+NUMERO_ITERAZIONI = 50  # Verranno generati multipli referti (di base 3) per ogni iterazione
+PAUSA = 12  # Secondi di pausa tra una chiamata e l'altra necessari per non fare troppe chiamate all'API
+REFERTI_PER_ITERAZIONE = 3  # Numero di referti da generare per ogni iterazione
+MODELLO_GEMINI = "gemini-2.0-flash"  # Modello da utilizzare per la generazione dei referti
+NOME_FILE_REFERTI_GENERATI = 'referti_generati_4.xlsx'  # File excel con i referti generati
+CARTELLA_OUTPUT = 'data'  # Cartella di output per il file excel
+
 def main():
     """
     Generazione massiva di referti sintetici
@@ -35,12 +43,12 @@ def main():
     df = pd.DataFrame(columns=columns)
     
     # Generazione
-    numero_iterazioni = 50  # Verranno generati multipli referti (di base 3) per ogni iterazione
-    pausa = 12  # Secondi di pausa tra una chiamata e l'altra necessari per non fare troppe chiamate all'API
     i = 0
-    for iterazione in range(numero_iterazioni):
-        referti_generati, gendict, indici_utilizzati, temp_utilizzate = genera_multipli_referti_con_uguale_gendict(client, referti,
-                                                                                                                    temperatura_iniziale=1.0)
+    for iterazione in range(NUMERO_ITERAZIONI):
+        print(f'*--- Iterazione {iterazione+1}')  # Tieni traccia dell'avanzamento
+        
+        # Effettiva generazione
+        referti_generati, gendict, indici_utilizzati, temp_utilizzate = genera_multipli_referti_con_uguale_gendict(client, referti, REFERTI_PER_ITERAZIONE, temperatura_iniziale=1.0, model_name=MODELLO_GEMINI)
         for j in range(len(referti_generati)):
             df.loc[i, 'report'] = referti_generati[j].text
             df.loc[i, 'indice referti esempio'] = indici_utilizzati[j]
@@ -48,15 +56,19 @@ def main():
             for k in gendict.keys():
                 df.loc[i, k] = gendict[k]['v']
             i += 1
-        print(f'Iterazione {iterazione+1} completata')
-        time.sleep(pausa)
+            
+        print(f'*--- Iterazione completata')  # Tieni traccia dell'avanzamento
+        time.sleep(PAUSA)  # Pausa per non fare troppe chiamate all'API
     
-    # Visualizzazionerisultati
+    # Visualizzazione risultati
     print(df.head())
     
     # Salvataggio risultati
-    output_path = os.path.join('data', 'referti_generati_4.xlsx')
+    print('*--- Salvataggio risultati...')
+    os.makedirs(CARTELLA_OUTPUT, exist_ok=True)  # Crea la cartella se non esiste
+    output_path = os.path.join(CARTELLA_OUTPUT, NOME_FILE_REFERTI_GENERATI)
     df.to_excel(output_path)
+    print(f'*--- File "{NOME_FILE_REFERTI_GENERATI}" salvato nella cartella "{CARTELLA_OUTPUT}"')
     
 if __name__ == "__main__":
     main()
