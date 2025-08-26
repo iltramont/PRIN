@@ -1,8 +1,7 @@
 import pandas as pd
 import random
 from utils import da_lista_a_elenco_virgole, random_DD
-
-
+from google.genai import types
 
 def carica_referti(path="data\Referti Gemelli 1-10 con annotazioni.xlsx"):
     # Questa funzione serve solo a caricare i referti
@@ -378,3 +377,60 @@ def indice_referti_esempio(lista_indici: list[int], numero_esempi = 3):
         numero_esempi = len(lista_indici)
     indexes = random.sample(lista_indici, numero_esempi)
     return indexes
+
+# Funzioni per generazione massiva
+def genera_referto_artificiale(client, referti_esempio: list[str], indici_referti_esempio: list[str], gendict: dict,
+                               temperatura: float, model_name: str = "gemini-2.0-flash"):
+    """
+    Dati un set di referti esempio, degli indici di questi referti e un dizionario con i parametri di generazione,
+    crea un prompt di sistema e un prompt utente, che vengono poi dati in input al modello per la generazione.
+    I modelli accettati sono quelli Gemini, di default viene usato il modello base, Gemini-2.0-flash.
+    TODO: aggiungere un modo per generare anche i parametri di generazione come Temperatura e TopK.
+    """
+    # Crea prompt di sistema
+    sys_text = generate_system_text(referti_esempio, gendict, indici_referti_esempio)
+    # Crea prompt utente
+    user_text = generate_user_text(gendict)
+    # Generazione tramite chiamata API
+    response = client.models.generate_content(
+    model=model_name,
+    config=types.GenerateContentConfig(
+        system_instruction=sys_text,
+        seed=25,
+        temperature=temperatura,
+        topK=40,
+        topP=0.95
+        #presence_penalty=0.0,
+        #frequency_penalty=0.0,
+        ),
+    contents=user_text
+    )
+    return response, sys_text, user_text
+
+
+def genera_multipli_referti_con_uguale_gendict(client, referti_esempio: list[str], numero_referti_generati: int = 3 ,
+                                               numero_esempi: int = 3, temperatura_iniziale=1.0, model_name: str = "gemini-2.0-flash",
+                                               incremento_temperatura=0.2):
+    # Inizializza variabili di uscita
+    referti_generati = []
+    indici_utilizzati = []
+    temp_utilizzate = []
+    # Crea dizionario di generazione
+    gendict = generate_generation_dict()
+    # Genera referti
+    indici_disponibili = list(range(len(referti_esempio)))
+    temperatura = temperatura_iniziale
+    for i in range(numero_referti_generati):
+        if len(indici_disponibili) < numero_esempi:
+            break
+        indici_scelti = random.sample(indici_disponibili, numero_esempi)
+        indici_utilizzati.append(indici_scelti)
+        # Rimuovi gli indici scelti da quelli disponibili
+        for indice in indici_scelti:
+            indici_disponibili.remove(indice)
+        # Genera il referto
+        referto, _, _ = genera_referto_artificiale(client, referti_esempio, indici_scelti, gendict, temperatura, model_name)
+        temp_utilizzate.append(temperatura)
+        temperatura += incremento_temperatura
+        referti_generati.append(referto)
+    return referti_generati, gendict, indici_utilizzati, temp_utilizzate
