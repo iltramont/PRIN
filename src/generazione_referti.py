@@ -15,7 +15,7 @@ NUMERO_ITERAZIONI = 50  # Verranno generati multipli referti (di base 3) per ogn
 PAUSA = 12  # Secondi di pausa tra una chiamata e l'altra necessari per non fare troppe chiamate all'API
 REFERTI_PER_ITERAZIONE = 3  # Numero di referti da generare per ogni iterazione
 MODELLO_GEMINI = "gemini-2.0-flash"  # Modello da utilizzare per la generazione dei referti
-NOME_FILE_REFERTI_GENERATI = 'referti_generati_4.xlsx'  # File excel con i referti generati
+NOME_FILE_REFERTI_GENERATI = 'referti_generati_5.xlsx'  # File excel con i referti generati
 CARTELLA_OUTPUT = 'data'  # Cartella di output per il file excel
 
 def main():
