@@ -1,12 +1,15 @@
 import pandas as pd
 import random
+import os
 from utils import da_lista_a_elenco_virgole, random_DD
 from google.genai import types
 
-def carica_referti(path="data\Referti Gemelli 1-10 con annotazioni.xlsx"):
+def carica_referti(path="\\data\\Referti Gemelli 1-10 con annotazioni.xlsx"):
     # Questa funzione serve solo a caricare i referti
     # Restituisce una lista di stringhe, ognuna delle quali è un referto')
-    row_data = pd.read_excel(path, index_col=0)
+    l = os.getcwd().split("\\")
+    complete_path = "\\".join(l[:len(l)-1]) + path
+    row_data = pd.read_excel(complete_path, index_col=0)
     referti = row_data.T['TESTO:'].tolist()
     return referti
     
