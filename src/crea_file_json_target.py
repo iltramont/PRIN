@@ -71,6 +71,7 @@ def convert_row_to_json(row: pd.Series, columns: list[str] = selected_columns) -
     for column in columns:
         if pd.notna(row[column]):
             if column in ['sedi_non_locoregionali', 'sedi_locoregionali']:
+                #TODO: sistemare questo pezzo di codice
                 value = row[column]  # Contenuto grezzo della clonna
                 if isinstance(value, str) and value.startswith('[') and value.endswith(']'):
                     value = value[1:-1]  # Rimuove le parentesi quadre
@@ -79,8 +80,15 @@ def convert_row_to_json(row: pd.Series, columns: list[str] = selected_columns) -
                     else:
                         assistant_content[column] = [item.strip()[1:-1] for item in value.split(',')]
             elif column == 'infiltrazione_organi_dettagli':
-                #TODO
-                pass
+                #TODO: sistemare questo pezzo di codice
+                raw_content = row[column]
+                if raw_content.startswith('{') and raw_content.endswith('}'):
+                    print(raw_content)
+                    correct_raw = raw_content.replace("{'", '{"').replace("True", "true").replace("False", "false").replace("'}", '"}').replace(":'", ':"').replace("':", '":').replace("',", '",').replace(" '", ' "')
+                    print(correct_raw)
+                    assistant_content[column] = json.loads(correct_raw)
+                else:
+                    assistant_content[column] = dict()
             else:
                 assistant_content[column] = row[column]
         else:
