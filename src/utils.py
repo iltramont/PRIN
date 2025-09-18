@@ -28,8 +28,13 @@ def prepara_stringa_per_json(stringa):
 def trasforma_string_in_lista_o_dizionario(stringa):
     return json.loads(prepara_stringa_per_json(stringa))
 
-def carica_system_prompts(indice: int) -> str:
-    path="\\data\\system_prompts.xlsx"
+
+def load_prompt(file_name: str, strip=True) -> str:
+    path="\\data\\prompts\\" + file_name
     l = os.getcwd().split("\\")
-    complete_path = "\\".join(l[:len(l)]) + path    
-    return pd.read_excel(complete_path).loc[indice, "system_prompt"]
+    path = "\\".join(l[:len(l)-1]) + path
+    with open(path, "r", encoding="utf-8") as f:
+        if strip:
+            return f.read().strip()
+        else:
+            return f.read()
