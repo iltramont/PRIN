@@ -128,7 +128,7 @@ def main():
                 f.write(json.dumps(json_list[-1]))  # Scrive l'ultimo record senza nuova linea
         elif STILE_FILE == 'HUGGINGFACE':
             # creo un solo dizionario con chiave 'data' e valore la lista di esempi
-            huggingface_dict = {'data': json_list}
+            huggingface_dict = {'conversations': json_list}
             json.dump(huggingface_dict, open(final_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
