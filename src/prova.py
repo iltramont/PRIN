@@ -5,9 +5,6 @@ import os
 import utils
 
 def main():
-
-    x = utils.load_prompt('system_prompt_1.txt')
-    print(x)
-
+    pass 
 if __name__ == "__main__":
     main()

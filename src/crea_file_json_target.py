@@ -26,6 +26,7 @@ import utils
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
 NOME_FILE_GENERATO = "data_training.json"
 SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
+STILE_FILE = 'HUGGINGFACE'  # 'OPENAI' o 'HUGGINGFACE'
 # Dato che molte colonne contengono valori nulli, le escludo
 SELECTED_COLUMNS = (
     'morfologia',
@@ -95,7 +96,7 @@ def main():
     # Get data
     current_path = os.getcwd().split("\\")
     file_name = "base.tumoreprimitivo.csv"
-    path = "\\".join(current_path[:len(current_path)-1]) + "\\data\\" + file_name
+    path = "\\".join(current_path[:len(current_path)]) + "\\data\\" + file_name
     data = pd.read_csv(path)
 
     # Crea un dizionario per ogni riga
@@ -106,7 +107,7 @@ def main():
 
     # Crea il percorso per il nuovo file
     current_path = os.getcwd().split("\\")
-    base_path = "\\".join(current_path[:len(current_path)-1]) + "\\data\\"
+    base_path = "\\".join(current_path[:len(current_path)]) + "\\data\\"
     # Aggiungi suffisso se il file esiste già
     filename, ext = os.path.splitext(NOME_FILE_GENERATO)
     final_path = os.path.join(base_path, NOME_FILE_GENERATO)
@@ -120,11 +121,15 @@ def main():
 
     # Crea il nuovo file
     if CREATE_FILE:
-        with open(final_path, 'w', encoding='utf-8') as f:
-            for json_dict in json_list[:-1]:  # Evita di aggiungere una nuova linea dopo l'ultimo record
-                f.write(json.dumps(json_dict) + '\n')
-            f.write(json.dumps(json_list[-1]))  # Scrive l'ultimo record senza nuova linea
-
+        if STILE_FILE == 'OPENAI':
+            with open(final_path, 'w', encoding='utf-8') as f:
+                for json_dict in json_list[:-1]:  # Evita di aggiungere una nuova linea dopo l'ultimo record
+                    f.write(json.dumps(json_dict) + '\n')
+                f.write(json.dumps(json_list[-1]))  # Scrive l'ultimo record senza nuova linea
+        elif STILE_FILE == 'HUGGINGFACE':
+            # creo un solo dizionario con chiave 'data' e valore la lista di esempi
+            huggingface_dict = {'data': json_list}
+            json.dump(huggingface_dict, open(final_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
     main()

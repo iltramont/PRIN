@@ -32,7 +32,7 @@ def trasforma_string_in_lista_o_dizionario(stringa):
 def load_prompt(file_name: str, strip=True) -> str:
     path="\\data\\prompts\\" + file_name
     l = os.getcwd().split("\\")
-    path = "\\".join(l[:len(l)-1]) + path
+    path = "\\".join(l[:len(l)]) + path
     with open(path, "r", encoding="utf-8") as f:
         if strip:
             return f.read().strip()
