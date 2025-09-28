@@ -5,8 +5,8 @@ import pandas as pd
 import time
 import os
 
-from utils_generazione_referti import generate_generation_dict, carica_referti
-from utils_generazione_referti import genera_multipli_referti_con_uguale_gendict
+from augmentation.utils_generazione_referti import generate_generation_dict, carica_referti
+from augmentation.utils_generazione_referti import genera_multipli_referti_con_uguale_gendict
 from dotenv import load_dotenv
 from google import genai
 
