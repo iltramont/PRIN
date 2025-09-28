@@ -2,8 +2,10 @@ import os
 import pandas as pd
 import json
 import utils
+from pathlib import Path
+import ast
 
-# Le righe del file di trainini devono essere ncessariamente formattate in questo modo:
+# Le righe del file di training devono essere ncessariamente formattate in questo modo:
 """
 {
     "messages": [
@@ -24,7 +26,7 @@ import utils
 
 # VARIABILI
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
-NOME_FILE_GENERATO = "data_training.json"
+NOME_FILE_GENERATO = "data_training_luca_1.json"
 SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
 STILE_FILE = 'HUGGINGFACE'  # 'OPENAI' o 'HUGGINGFACE'
 # Dato che molte colonne contengono valori nulli, le escludo
@@ -40,7 +42,7 @@ SELECTED_COLUMNS = (
     'infiltrazione_tessuto_adiposo',
     'infiltrazione_sfinteri',
     'infiltrazione_organi_extra',
-    'infiltrazione_organi_dettagli',
+#    'infiltrazione_organi_dettagli',
     'coinvolgimento_riflessione_peritoneale',
     'coinvolgimento_fascia_mesorettale',
     'linfonodi_sospetti',
@@ -50,6 +52,57 @@ SELECTED_COLUMNS = (
     'numero_depositi',
     'emvi_esteso'
 )
+
+
+# --- Define possible values for boolean conversion ---
+# Based on the user's request for Linfonodi_non_regionali
+NON_REGIONALI_POSSIBLE_VALUES = [
+    "inguinali", 
+    "iliaci_esterni", 
+    "iliaci_comuni", 
+    "paraortici", 
+    "altri"
+]
+
+# Based on the user's request for Linfonodi_regionali.Sedi
+SEDI_REGIONALI_POSSIBLE_VALUES = [
+    "mesorettali", 
+    "rettali_superiori", 
+    "mesenterici_inferiori", 
+    "iliaci_interni", 
+    "otturatori", 
+    "sacrali", 
+    "inguinali_sotto_dentata"
+]
+
+# --- Safe parsing helpers ---
+def safe_list_parse(val):
+    if isinstance(val, str):
+        try:
+            # Safely evaluate string literal into a Python list
+            parsed_list = ast.literal_eval(val)
+            # Ensure the result is actually a list (in case of empty string or other literals)
+            return parsed_list if isinstance(parsed_list, list) else []
+        except Exception:
+            return []
+    elif isinstance(val, list):
+        return val
+    else:
+        return []
+
+
+# --- Helper for boolean conversion ---
+def convert_list_to_boolean_dict(data_list, possible_values) -> dict:
+    """Converts a list of strings into a dictionary of boolean flags."""
+    # Ensure data_list is a list, even if empty
+    data_list = safe_list_parse(data_list)
+    
+    # Create a dictionary with a boolean for each possible value
+    boolean_dict = {
+        value: (value in data_list) 
+        for value in possible_values
+    }
+    return boolean_dict
 
 
 def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str] = SELECTED_COLUMNS) -> dict:
@@ -64,17 +117,15 @@ def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str]
         ]
     }
     """
-    user_content = row["report_text"]
     # Crea l'output desiderato
     assistant_content = dict()
     for column in columns:
         if pd.notna(row[column]):
             value = row[column]  # Contenuto grezzo della colonna
-            if column in ['sedi_non_locoregionali', 'sedi_locoregionali', 'infiltrazione_organi_dettagli']:
-                if value == '[object Object]':
-                    assistant_content[column] = None
-                else:
-                    assistant_content[column] = utils.trasforma_string_in_lista_o_dizionario(value)
+            if column == 'sedi_non_locoregionali':
+                assistant_content[column] = convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
+            elif column == 'sedi_locoregionali':
+                assistant_content[column] = convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
             else:
                 assistant_content[column] = value
         else:
@@ -83,21 +134,24 @@ def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str]
     json_dict = {
         "messages": [
             {"role": "system", "content": system_content},
-            {"role": "user", "content": user_content},
+            {"role": "user", "content": row["report_text"]},
             {"role": "assistant", "content": assistant_content}
         ]
     }
     return json_dict 
 
 def main():
+    base_dir = Path(__file__).parent.parent
+    
     # Carica il prompt di sistema
-    system_content = utils.load_prompt(SYSTEM_PROMPT_FILE_NAME)
+    prompt_path = base_dir / "models" / "prompts" / SYSTEM_PROMPT_FILE_NAME
+    print(prompt_path)
+    with open(prompt_path, "r", encoding="utf-8") as f:
+        system_content = f.read().strip()
 
     # Get data
-    current_path = os.getcwd().split("\\")
-    file_name = "base.tumoreprimitivo.csv"
-    path = "\\".join(current_path[:len(current_path)]) + "\\data\\" + file_name
-    data = pd.read_csv(path)
+    data_path = base_dir / "data" / "base.tumoreprimitivo.csv"
+    data = pd.read_csv(data_path)
 
     # Crea un dizionario per ogni riga
     json_list = []
@@ -106,30 +160,29 @@ def main():
         json_list.append(row_json_dict)
 
     # Crea il percorso per il nuovo file
-    current_path = os.getcwd().split("\\")
-    base_path = "\\".join(current_path[:len(current_path)]) + "\\data\\"
+    base_path = base_dir / "data" / "ft-dataset"
     # Aggiungi suffisso se il file esiste già
     filename, ext = os.path.splitext(NOME_FILE_GENERATO)
-    final_path = os.path.join(base_path, NOME_FILE_GENERATO)
+    new_file_path = os.path.join(base_path, NOME_FILE_GENERATO)
     counter = 1
-    while os.path.exists(final_path):
-        final_path = os.path.join(base_path, f"{filename}_{counter}{ext}")
+    while os.path.exists(new_file_path):
+        new_file_path = os.path.join(base_path, f"{filename}_{counter}{ext}")
         counter += 1
 
     # Stampa percorso per controllo
-    print(f"File will be saved to: {final_path}")
+    print(f"File will be saved to: {new_file_path}")
 
     # Crea il nuovo file
     if CREATE_FILE:
         if STILE_FILE == 'OPENAI':
-            with open(final_path, 'w', encoding='utf-8') as f:
+            with open(new_file_path, 'w', encoding='utf-8') as f:
                 for json_dict in json_list[:-1]:  # Evita di aggiungere una nuova linea dopo l'ultimo record
                     f.write(json.dumps(json_dict) + '\n')
                 f.write(json.dumps(json_list[-1]))  # Scrive l'ultimo record senza nuova linea
         elif STILE_FILE == 'HUGGINGFACE':
             # creo un solo dizionario con chiave 'data' e valore la lista di esempi
             huggingface_dict = {'conversations': json_list}
-            json.dump(huggingface_dict, open(final_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
+            json.dump(huggingface_dict, open(new_file_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
 
 if __name__ == '__main__':
     main()

@@ -3,6 +3,7 @@ import random
 import json
 import os
 import pandas as pd
+from pathlib import Path
 
 def da_lista_a_elenco_virgole(lista):
     # Trasforma una lista in un elenco separato da virgole
@@ -30,9 +31,8 @@ def trasforma_string_in_lista_o_dizionario(stringa):
 
 
 def load_prompt(file_name: str, strip=True) -> str:
-    path="\\data\\prompts\\" + file_name
-    l = os.getcwd().split("\\")
-    path = "\\".join(l[:len(l)]) + path
+    base_dir = Path(__file__).parent.parent / "models" / "prompts"
+    path = base_dir / file_name
     with open(path, "r", encoding="utf-8") as f:
         if strip:
             return f.read().strip()
