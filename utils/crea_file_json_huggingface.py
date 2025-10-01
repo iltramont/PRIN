@@ -3,7 +3,6 @@ import pandas as pd
 import json
 import utils
 from pathlib import Path
-import ast
 
 # Le righe del file di training devono essere ncessariamente formattate in questo modo:
 """
@@ -52,10 +51,6 @@ SELECTED_COLUMNS = (
     'numero_depositi',
     'emvi_esteso'
 )
-
-
-# --- Define possible values for boolean conversion ---
-# Based on the user's request for Linfonodi_non_regionali
 NON_REGIONALI_POSSIBLE_VALUES = [
     "inguinali", 
     "iliaci_esterni", 
@@ -63,8 +58,6 @@ NON_REGIONALI_POSSIBLE_VALUES = [
     "paraortici", 
     "altri"
 ]
-
-# Based on the user's request for Linfonodi_regionali.Sedi
 SEDI_REGIONALI_POSSIBLE_VALUES = [
     "mesorettali", 
     "rettali_superiori", 
@@ -74,36 +67,6 @@ SEDI_REGIONALI_POSSIBLE_VALUES = [
     "sacrali", 
     "inguinali_sotto_dentata"
 ]
-
-# --- Safe parsing helpers ---
-def safe_list_parse(val):
-    if isinstance(val, str):
-        try:
-            # Safely evaluate string literal into a Python list
-            parsed_list = ast.literal_eval(val)
-            # Ensure the result is actually a list (in case of empty string or other literals)
-            return parsed_list if isinstance(parsed_list, list) else []
-        except Exception:
-            return []
-    elif isinstance(val, list):
-        return val
-    else:
-        return []
-
-
-# --- Helper for boolean conversion ---
-def convert_list_to_boolean_dict(data_list, possible_values) -> dict:
-    """Converts a list of strings into a dictionary of boolean flags."""
-    # Ensure data_list is a list, even if empty
-    data_list = safe_list_parse(data_list)
-    
-    # Create a dictionary with a boolean for each possible value
-    boolean_dict = {
-        value: (value in data_list) 
-        for value in possible_values
-    }
-    return boolean_dict
-
 
 def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str] = SELECTED_COLUMNS) -> dict:
     """
@@ -123,9 +86,9 @@ def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str]
         if pd.notna(row[column]):
             value = row[column]  # Contenuto grezzo della colonna
             if column == 'sedi_non_locoregionali':
-                assistant_content[column] = convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
+                assistant_content[column] = utils.convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
             elif column == 'sedi_locoregionali':
-                assistant_content[column] = convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
+                assistant_content[column] = utils.convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
             else:
                 assistant_content[column] = value
         else:
@@ -166,7 +129,7 @@ def main():
     new_file_path = os.path.join(base_path, NOME_FILE_GENERATO)
     counter = 1
     while os.path.exists(new_file_path):
-        new_file_path = os.path.join(base_path, f"{filename}_{counter}{ext}")
+        new_file_path = os.path.join(base_path, f"{filename}-v{counter}{ext}")
         counter += 1
 
     # Stampa percorso per controllo
