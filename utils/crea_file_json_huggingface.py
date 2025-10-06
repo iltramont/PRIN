@@ -3,8 +3,10 @@ import pandas as pd
 import json
 import utils
 from pathlib import Path
+from sklearn.model_selection import train_test_split
 
-# Le righe del file di training devono essere ncessariamente formattate in questo modo:
+
+# Per OpenAI le righe del file di training devono essere ncessariamente formattate in questo modo:
 """
 {
     "messages": [
@@ -25,9 +27,10 @@ from pathlib import Path
 
 # VARIABILI
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
-NOME_FILE_GENERATO = "data_training_luca_1.json"
+NOME_FILE_GENERATO = "data_luca"
 SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
-STILE_FILE = 'HUGGINGFACE'  # 'OPENAI' o 'HUGGINGFACE'
+TEST_SIZE = 0.2
+VALIDATION_SIZE = 0.1
 # Dato che molte colonne contengono valori nulli, le escludo
 SELECTED_COLUMNS = (
     'morfologia',
@@ -101,7 +104,25 @@ def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str]
             {"role": "assistant", "content": assistant_content}
         ]
     }
-    return json_dict 
+    return json_dict
+
+
+def crea_lista_di_dizionari_da_dataframe(dataframe: pd.DataFrame, system_content: str) -> list[dict]:
+    json_list = []
+    for index, row in dataframe.iterrows():
+        row_json_dict = convert_row_to_json(row, system_content)
+        json_list.append(row_json_dict)
+    return json_list
+
+
+def split_dataframe(dataframe: pd.DataFrame, test_size: float = 0.2, validation_size: float = 0.1, random_state: int = 2025) -> tuple[pd.DataFrame]:
+    train_split, test_split = train_test_split(dataframe, test_size=test_size, random_state=random_state)
+    if validation_size > 0.0:
+        relative_val_size = validation_size / (1 - test_size)
+        train_split, val_split = train_test_split(train_split, test_size=relative_val_size, random_state=random_state)
+        return train_split, test_split, val_split
+    return train_split, test_split
+
 
 def main():
     base_dir = Path(__file__).parent.parent
@@ -115,37 +136,42 @@ def main():
     # Get data
     data_path = base_dir / "data" / "base.tumoreprimitivo.csv"
     data = pd.read_csv(data_path)
+    
+    # Split data
+    train_data, test_data, val_data = split_dataframe(data, test_size=0.2, validation_size=0.1, random_state=42)
 
-    # Crea un dizionario per ogni riga
-    json_list = []
-    for index, row in data.iterrows():
-        row_json_dict = convert_row_to_json(row, system_content)
-        json_list.append(row_json_dict)
-
+    # Crea lista di dizionari per ogni split
+    train_dicts = crea_lista_di_dizionari_da_dataframe(train_data, system_content)
+    test_dicts = crea_lista_di_dizionari_da_dataframe(test_data, system_content)
+    if VALIDATION_SIZE > 0.0:
+        val_dicts = crea_lista_di_dizionari_da_dataframe(val_data, system_content)    
+    
     # Crea il percorso per il nuovo file
     base_path = base_dir / "data" / "ft-dataset"
     # Aggiungi suffisso se il file esiste già
-    filename, ext = os.path.splitext(NOME_FILE_GENERATO)
-    new_file_path = os.path.join(base_path, NOME_FILE_GENERATO)
+    ext = ".jsonl"
+    train_file_path = os.path.join(base_path, NOME_FILE_GENERATO + "_train" + ext)
+    test_file_path = os.path.join(base_path, NOME_FILE_GENERATO + "_test" + ext)
+    val_file_path = os.path.join(base_path, NOME_FILE_GENERATO + "_val" + ext)
     counter = 1
-    while os.path.exists(new_file_path):
-        new_file_path = os.path.join(base_path, f"{filename}-v{counter}{ext}")
+    while os.path.exists(train_file_path):
+        train_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO}_train-v{counter}{ext}")
+        test_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO}_test-v{counter}{ext}")
+        if VALIDATION_SIZE > 0.0:
+            val_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO}_val-v{counter}{ext}")
         counter += 1
 
     # Stampa percorso per controllo
-    print(f"File will be saved to: {new_file_path}")
+    print(f"File will be saved to: {train_file_path}, {test_file_path}, {val_file_path}")
 
-    # Crea il nuovo file
-    if CREATE_FILE:
-        if STILE_FILE == 'OPENAI':
-            with open(new_file_path, 'w', encoding='utf-8') as f:
-                for json_dict in json_list[:-1]:  # Evita di aggiungere una nuova linea dopo l'ultimo record
+    for f_path, dict_list in zip(
+        [train_file_path, test_file_path] + ([val_file_path] if VALIDATION_SIZE > 0.0 else []),
+        [train_dicts, test_dicts] + ([val_dicts] if VALIDATION_SIZE > 0.0 else [])
+    ):
+        with open(f_path, 'w', encoding='utf-8') as f:
+                for json_dict in dict_list:
                     f.write(json.dumps(json_dict) + '\n')
-                f.write(json.dumps(json_list[-1]))  # Scrive l'ultimo record senza nuova linea
-        elif STILE_FILE == 'HUGGINGFACE':
-            # creo un solo dizionario con chiave 'data' e valore la lista di esempi
-            huggingface_dict = {'conversations': json_list}
-            json.dump(huggingface_dict, open(new_file_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=4)
+
 
 if __name__ == '__main__':
     main()
