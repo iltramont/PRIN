@@ -28,7 +28,7 @@ from sklearn.model_selection import train_test_split
 # VARIABILI
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
 NOME_FILE_GENERATO = "data_luca"
-SYSTEM_PROMPT_FILE_NAME = "system_prompt_2.txt"
+SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
 TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.1
 # Dato che molte colonne contengono valori nulli, le escludo
@@ -90,16 +90,16 @@ def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str]
             value = row[column]  # Contenuto grezzo della colonna
             if column == 'sedi_non_locoregionali':
                 flags = utils.convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
-                for key in flags.keys():
-                    assistant_key = 'linfonodi_' + key
-                    assistant_content[assistant_key] = flags[key]
-                #assistant_content[column] = utils.convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
+                #for key in flags.keys():
+                #    assistant_key = 'linfonodi_' + key
+                #    assistant_content[assistant_key] = flags[key]
+                assistant_content[column] = utils.convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
             elif column == 'sedi_locoregionali':
                 flags = utils.convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
-                for key in flags.keys():
-                    assistant_key = 'linfonodi_' + key
-                    assistant_content[assistant_key] = flags[key]
-                #assistant_content[column] = utils.convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
+                #for key in flags.keys():
+                #    assistant_key = 'linfonodi_' + key
+                #    assistant_content[assistant_key] = flags[key]
+                assistant_content[column] = utils.convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
             else:
                 assistant_content[column] = value
         else:
