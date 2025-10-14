@@ -63,7 +63,7 @@ class LesioniOssee(str, Enum):
     no = "no"
     si = "si"
 
-class SediLinfonodiLocoregionali(BaseModel):
+class SediLocoregionali(BaseModel):
     mesorettali: bool
     rettali_superiori: bool 
     mesenterici_inferiori: bool 
@@ -72,7 +72,7 @@ class SediLinfonodiLocoregionali(BaseModel):
     sacrali: bool 
     inguinali_sotto_dentata: bool 
 
-class SediLinfonodiNonLocoregionali(BaseModel):
+class SediNonLocoregionali(BaseModel):
     inguinali: bool
     iliaci_esterni: bool 
     iliaci_comuni: bool 
@@ -80,21 +80,21 @@ class SediLinfonodiNonLocoregionali(BaseModel):
     altri: bool 
 
 class ReportData(BaseModel):
-    morfologia: Morfologia
-    posizione: Posizione
+    morfologia: Morfologia | None
+    posizione: Posizione | None
     spessore_parietale: int | None
     estensione_cranio_caudale: int | None
     distanza_oai: int | None
-    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
-    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo
-    infiltrazione_sfinteri: InfiltrazioneSfinteri
-    infiltrazione_organi_extra: InfiltrazioneOrganiExtra
-    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale
-    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
+    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore | None
+    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo | None
+    infiltrazione_sfinteri: InfiltrazioneSfinteri | None
+    infiltrazione_organi_extra: InfiltrazioneOrganiExtra | None
+    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
+    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
     linfonodi_sospetti: int
-    sedi_linfonodi_locoregionali: SediLinfonodiLocoregionali
-    sedi_linfonodi_non_locoregionali: SediLinfonodiNonLocoregionali
-    depositi_tumorali: DepositiTumorali
-    emvi_esteso: EMVIEsteso
-    carcinosi_peritoneale: CarcinosiPeritoneale
-    lesioni_ossee: LesioniOssee
+    sedi_locoregionali: SediLocoregionali
+    sedi_non_locoregionali: SediNonLocoregionali
+    depositi_tumorali: DepositiTumorali | None
+    emvi_esteso: EMVIEsteso | None
+    carcinosi_peritoneale: CarcinosiPeritoneale | None
+    lesioni_ossee: LesioniOssee | None
