@@ -40,6 +40,7 @@ Schema JSON per l'output:
     "altri": "true | false"
   },
   "depositi_tumorali": "no | si | sospetto",
+  "numero_depositi": "int",
   "emvi_esteso": "no | si | sospetto",
   "carcinosi_peritoneale": "no | si",
   "lesioni_ossee": "no | si"

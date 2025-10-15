@@ -95,6 +95,7 @@ class ReportData(BaseModel):
     sedi_locoregionali: SediLocoregionali
     sedi_non_locoregionali: SediNonLocoregionali
     depositi_tumorali: DepositiTumorali | None
+    numero_depositi: int | None
     emvi_esteso: EMVIEsteso | None
     carcinosi_peritoneale: CarcinosiPeritoneale | None
     lesioni_ossee: LesioniOssee | None
