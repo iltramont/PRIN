@@ -31,6 +31,9 @@ NOME_FILE_GENERATO = "data_luca"
 SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
 TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.1
+TIPO = 'openai'
+if TIPO != 'openai':
+    TIPO = 'huggingface'
 # Dato che molte colonne contengono valori nulli, le escludo
 SELECTED_COLUMNS = (
     'morfologia',
@@ -104,6 +107,8 @@ def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str]
                 assistant_content[column] = value
         else:
             assistant_content[column] = None
+    if TIPO == 'openai':
+        assistant_content = json.dumps(assistant_content)
     # Crea il dizionario JSON
     json_dict = {
         "messages": [
@@ -158,15 +163,15 @@ def main():
     base_path = base_dir / "data" / "ft-dataset"
     # Aggiungi suffisso se il file esiste già
     ext = ".jsonl"
-    train_file_path = os.path.join(base_path, NOME_FILE_GENERATO + "_train" + ext)
-    test_file_path = os.path.join(base_path, NOME_FILE_GENERATO + "_test" + ext)
-    val_file_path = os.path.join(base_path, NOME_FILE_GENERATO + "_val" + ext)
+    train_file_path = os.path.join(base_path, NOME_FILE_GENERATO + '_' + TIPO + "_train" + ext)
+    test_file_path = os.path.join(base_path, NOME_FILE_GENERATO + '_' + TIPO+ "_test" + ext)
+    val_file_path = os.path.join(base_path, NOME_FILE_GENERATO + '_' + TIPO + "_val" + ext)
     counter = 1
     while os.path.exists(train_file_path):
-        train_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO}_train-v{counter}{ext}")
-        test_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO}_test-v{counter}{ext}")
+        train_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO + '_' + TIPO}_train-v{counter}{ext}")
+        test_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO + '_' + TIPO}_test-v{counter}{ext}")
         if VALIDATION_SIZE > 0.0:
-            val_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO}_val-v{counter}{ext}")
+            val_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO + '_' + TIPO}_val-v{counter}{ext}")
         counter += 1
 
     # Stampa percorso per controllo
