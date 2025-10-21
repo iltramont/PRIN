@@ -16,10 +16,6 @@ from sklearn.model_selection import train_test_split
     ] 
 }
 """
-# Nella versione compatta, senza indentazione:
-"""
-{"messages": [{"role": "system", "content": <system_text>}, {"role": "user", "content": <user_text>}, {"role": "assistant", "content": <assistant_text>}]}
-"""
 # System text sarà sempre lo stesso per tutti gli esempi di training.
 # User text sarà il report.
 # Assistant text sarà l'output del modello in formato json.
@@ -34,96 +30,13 @@ VALIDATION_SIZE = 0.1
 TIPO = 'openai'
 if TIPO != 'openai':
     TIPO = 'huggingface'
-# Dato che molte colonne contengono valori nulli, le escludo
-SELECTED_COLUMNS = (
-    'morfologia',
-    'spessore_parietale',
-    'estensione_cranio_caudale',
-    'distanza_oai',
-    'posizione',
-    'carcinosi_peritoneale',
-    'lesioni_ossee',
-    'riflessione_peritoneale_anteriore',
-    'infiltrazione_tessuto_adiposo',
-    'infiltrazione_sfinteri',
-    'infiltrazione_organi_extra',
-#    'infiltrazione_organi_dettagli',
-    'coinvolgimento_riflessione_peritoneale',
-    'coinvolgimento_fascia_mesorettale',
-    'linfonodi_sospetti',
-    'sedi_locoregionali',
-    'sedi_non_locoregionali',
-    'depositi_tumorali',
-    'numero_depositi',
-    'emvi_esteso'
-)
-NON_REGIONALI_POSSIBLE_VALUES = [
-    "inguinali", 
-    "iliaci_esterni", 
-    "iliaci_comuni", 
-    "paraortici", 
-    "altri"
-]
-SEDI_REGIONALI_POSSIBLE_VALUES = [
-    "mesorettali", 
-    "rettali_superiori", 
-    "mesenterici_inferiori", 
-    "iliaci_interni", 
-    "otturatori", 
-    "sacrali", 
-    "inguinali_sotto_dentata"
-]
 
-def convert_row_to_json(row: pd.Series, system_content: str, columns: tuple[str] = SELECTED_COLUMNS) -> dict:
-    """
-    Data una riga del dataset del gemelli, crea un dizionario json con le colonne specificate.
-    Il dizionario è nella forma:
-    {
-        "messages": [
-            {"role": "system", "content": <system_content>},
-            {"role": "user", "content": <user_content>},
-            {"role": "assistant", "content": <assistant_content>}
-        ]
-    }
-    """
-    # Crea l'output desiderato
-    assistant_content = dict()
-    for column in columns:
-        if pd.notna(row[column]):
-            value = row[column]  # Contenuto grezzo della colonna
-            if column == 'sedi_non_locoregionali':
-                flags = utils.convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
-                #for key in flags.keys():
-                #    assistant_key = 'linfonodi_' + key
-                #    assistant_content[assistant_key] = flags[key]
-                assistant_content[column] = utils.convert_list_to_boolean_dict(value, NON_REGIONALI_POSSIBLE_VALUES)
-            elif column == 'sedi_locoregionali':
-                flags = utils.convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
-                #for key in flags.keys():
-                #    assistant_key = 'linfonodi_' + key
-                #    assistant_content[assistant_key] = flags[key]
-                assistant_content[column] = utils.convert_list_to_boolean_dict(value, SEDI_REGIONALI_POSSIBLE_VALUES)
-            else:
-                assistant_content[column] = value
-        else:
-            assistant_content[column] = None
-    if TIPO == 'openai':
-        assistant_content = json.dumps(assistant_content)
-    # Crea il dizionario JSON
-    json_dict = {
-        "messages": [
-            {"role": "system", "content": system_content},
-            {"role": "user", "content": row["report_text"]},
-            {"role": "assistant", "content": assistant_content}
-        ]
-    }
-    return json_dict
 
 
 def crea_lista_di_dizionari_da_dataframe(dataframe: pd.DataFrame, system_content: str) -> list[dict]:
     json_list = []
     for index, row in dataframe.iterrows():
-        row_json_dict = convert_row_to_json(row, system_content)
+        row_json_dict = utils.convert_row_to_json(row, system_content)
         json_list.append(row_json_dict)
     return json_list
 

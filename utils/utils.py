@@ -5,7 +5,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import ast
-
+from schema_json import *
 
 def da_lista_a_elenco_virgole(lista):
     # Trasforma una lista in un elenco separato da virgole
@@ -73,3 +73,44 @@ def convert_list_to_boolean_dict(data_list, possible_values) -> dict:
         for value in possible_values
     }
     return boolean_dict
+
+
+def convert_row_to_json(row: pd.Series, system_content: str, style: str = 'openai') -> dict:
+    
+    """
+    Data una riga del dataset del gemelli, crea un dizionario json con le colonne specificate.
+    Il dizionario è nella forma:
+    {
+        "messages": [
+            {"role": "system", "content": <system_content>},
+            {"role": "user", "content": <user_content>},
+            {"role": "assistant", "content": <assistant_content>}
+        ]
+    }
+    """
+    assistant_content = dict()
+    fields = ReportData.model_fields.keys()
+    # Crea l'output desiderato
+    for f in fields:
+        if pd.notna(row[f]):
+            value = row[f]  # Contenuto grezzo della colonna
+            if f == 'sedi_non_locoregionali':
+                assistant_content[f] = convert_list_to_boolean_dict(value, SediNonLocoregionali.model_fields.keys())
+            elif f == 'sedi_locoregionali':
+                assistant_content[f] = convert_list_to_boolean_dict(value, SediLocoregionali.model_fields.keys())
+            else:
+                assistant_content[f] = value
+        else:
+            assistant_content[f] = None
+    report_data = ReportData.model_validate(assistant_content)
+    assistant_content = report_data.model_dump(mode='json')
+    if style == 'openai':
+        assistant_content = report_data.model_dump_json()
+    json_dict = {
+        "messages": [
+            {"role": "system", "content": system_content},
+            {"role": "user", "content": row["report_text"]},
+            {"role": "assistant", "content": assistant_content}
+        ]
+    }
+    return json_dict
