@@ -38,6 +38,7 @@ print(f'{data_clean.shape = }')
 
 # Isola righe che hanno valori di colonne appartenenti a classi poco numerose (minori di 2)
 lesioni_ossee_si = data_clean[data_clean.lesioni_ossee == 'si']
+"""
 infiltrazione_sfinteri_interno = data_clean[data_clean.infiltrazione_sfinteri == 'interno']
 infiltrazione_sfinteri_interno_piano_esterno = data_clean[data_clean.infiltrazione_sfinteri == 'interno_piano_esterno']
 coinvolgimento_riflessione_peritoneale_rischio = data_clean[data_clean.coinvolgimento_riflessione_peritoneale == 'rischio']
@@ -47,8 +48,9 @@ depositi_tumorali_sospetto = data_clean[data_clean.depositi_tumorali == 'sospett
 mrf_NaN = data_clean[data_clean.mrf.fillna('NaN') == 'NaN']
 stadio_N_NaN = data_clean[data_clean.stadio_N.fillna('NaN') == 'NaN']
 stadio_N_N1c = data_clean[data_clean.stadio_N == 'N1c']
-
+"""
 print(len(lesioni_ossee_si))
+"""
 print(len(infiltrazione_sfinteri_interno))
 print(len(infiltrazione_sfinteri_interno_piano_esterno))
 print(len(coinvolgimento_riflessione_peritoneale_rischio))
@@ -57,8 +59,9 @@ print(len(coinvolgimento_fascia_mesorettale_NaN))
 print(len(depositi_tumorali_sospetto))
 print(len(mrf_NaN))
 print(len(stadio_N_NaN))
-print(len(stadio_N_N1c))
+print(len(stadio_N_N1c))"""
 print(lesioni_ossee_si.index)
+"""
 print(infiltrazione_sfinteri_interno.index)
 print(infiltrazione_sfinteri_interno_piano_esterno.index)
 print(coinvolgimento_riflessione_peritoneale_rischio.index)
@@ -67,7 +70,7 @@ print(coinvolgimento_fascia_mesorettale_NaN.index)
 print(depositi_tumorali_sospetto.index)
 print(mrf_NaN.index)
 print(stadio_N_NaN.index)
-print(stadio_N_N1c.index)
+print(stadio_N_N1c.index)"""
 
 # Crea split di dati
 """train_split, test_split = train_test_split(data_clean,
