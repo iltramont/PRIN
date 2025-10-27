@@ -120,7 +120,7 @@ class ReportData(BaseModel):
     infiltrazione_organi_extra: InfiltrazioneOrganiExtra | None
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
-    linfonodi_sospetti: int
+    linfonodi_sospetti: int | None
     sedi_locoregionali: SediLocoregionali
     sedi_non_locoregionali: SediNonLocoregionali
     depositi_tumorali: DepositiTumorali | None
@@ -148,7 +148,7 @@ class ReportDataOneLevel(BaseModel):
     infiltrazione_organi_extra: InfiltrazioneOrganiExtra | None
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
-    linfonodi_sospetti: int
+    linfonodi_sospetti: int | None
     linfonodi_mesorettali: bool
     linfonodi_rettali_superiori: bool
     linfonodi_mesenterici_inferiori: bool

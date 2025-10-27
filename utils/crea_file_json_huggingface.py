@@ -25,9 +25,12 @@ from sklearn.model_selection import train_test_split
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
 NOME_FILE_GENERATO = "data_luca"
 SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
-TEST_SIZE = 0.2
-VALIDATION_SIZE = 0.1
-TIPO = 'openai'
+
+TRAIN_SPLIT_NAME: str = 'train_split.csv'
+TEST_SPLIT_NAME: str = 'test_split.csv'
+VALIDATION_SPLIT_NAME: str | None = None
+
+TIPO = 'huggingface'
 if TIPO != 'openai':
     TIPO = 'huggingface'
 
@@ -36,18 +39,9 @@ if TIPO != 'openai':
 def crea_lista_di_dizionari_da_dataframe(dataframe: pd.DataFrame, system_content: str) -> list[dict]:
     json_list = []
     for index, row in dataframe.iterrows():
-        row_json_dict = utils.convert_row_to_json(row, system_content)
+        row_json_dict = utils.convert_row_to_json(row, system_content, style=TIPO)
         json_list.append(row_json_dict)
     return json_list
-
-
-def split_dataframe(dataframe: pd.DataFrame, test_size: float = 0.2, validation_size: float = 0.1, random_state: int = 2025) -> tuple[pd.DataFrame]:
-    train_split, test_split = train_test_split(dataframe, test_size=test_size, random_state=random_state)
-    if validation_size > 0.0:
-        relative_val_size = validation_size / (1 - test_size)
-        train_split, val_split = train_test_split(train_split, test_size=relative_val_size, random_state=random_state)
-        return train_split, test_split, val_split
-    return train_split, test_split
 
 
 def main():
@@ -60,19 +54,22 @@ def main():
         system_content = f.read().strip()
 
     # Get data
-    data_path = base_dir / "data" / "base.tumoreprimitivo.csv"
-    data = pd.read_csv(data_path)
+    train_path = base_dir / "data" / TRAIN_SPLIT_NAME
+    test_path = base_dir / "data" / TEST_SPLIT_NAME
+    train_data = pd.read_csv(train_path)
+    test_data = pd.read_csv(test_path)
     
-    # Split data
-    train_data, test_data, val_data = split_dataframe(data, test_size=0.2, validation_size=0.1, random_state=42)
-
     # Crea lista di dizionari per ogni split
     train_dicts = crea_lista_di_dizionari_da_dataframe(train_data, system_content)
     test_dicts = crea_lista_di_dizionari_da_dataframe(test_data, system_content)
-    if VALIDATION_SIZE > 0.0:
-        val_dicts = crea_lista_di_dizionari_da_dataframe(val_data, system_content)    
     
-    # Crea il percorso per il nuovo file
+    # Validation
+    if VALIDATION_SPLIT_NAME is not None:
+        validation_path = base_dir / "data" / VALIDATION_SPLIT_NAME
+        validation_data = pd.read_csv(validation_path)
+        validation_dicts = crea_lista_di_dizionari_da_dataframe(validation_data, system_content)    
+    
+    # Crea il percorso per i nuovi file
     base_path = base_dir / "data" / "ft-dataset"
     # Aggiungi suffisso se il file esiste già
     ext = ".jsonl"
@@ -83,16 +80,16 @@ def main():
     while os.path.exists(train_file_path):
         train_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO + '_' + TIPO}_train-v{counter}{ext}")
         test_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO + '_' + TIPO}_test-v{counter}{ext}")
-        if VALIDATION_SIZE > 0.0:
+        if VALIDATION_SPLIT_NAME is not None:
             val_file_path = os.path.join(base_path, f"{NOME_FILE_GENERATO + '_' + TIPO}_val-v{counter}{ext}")
         counter += 1
 
     # Stampa percorso per controllo
     print(f"File will be saved to: {train_file_path}, {test_file_path}, {val_file_path}")
-
+    # Salva
     for f_path, dict_list in zip(
-        [train_file_path, test_file_path] + ([val_file_path] if VALIDATION_SIZE > 0.0 else []),
-        [train_dicts, test_dicts] + ([val_dicts] if VALIDATION_SIZE > 0.0 else [])
+        [train_file_path, test_file_path] + ([val_file_path] if VALIDATION_SPLIT_NAME is not None else []),
+        [train_dicts, test_dicts] + ([validation_dicts] if VALIDATION_SPLIT_NAME is not None else [])
     ):
         with open(f_path, 'w', encoding='utf-8') as f:
                 for json_dict in dict_list:
