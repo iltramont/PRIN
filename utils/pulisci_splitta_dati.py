@@ -1,16 +1,25 @@
 import pandas as pd
-import os
-import numpy as np
 from pathlib import Path
 #from sklearn.model_selection import train_test_split
 from skmultilearn.model_selection import iterative_train_test_split
 import random
 from schema_json import ReportData
+from sklearn.preprocessing import OneHotEncoder
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+plt.style.use('ggplot')
 
 
 TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.05
 RANDOM_STATE = 2025
+DATA_FILE_NAME = "base.tumoreprimitivo.csv"
+
+TRAIN_SPLIT_FILE_NAME = 'train_split.csv'
+TEST_SPLIT_FILE_NAME = 'test_split.csv'
+
+REPORT__COLUMN_NAME = 'report_text'
 STRATIFY_COLUMNS = (
     'posizione',
     'infiltrazione_sfinteri',
@@ -24,13 +33,10 @@ STRATIFY_COLUMNS = (
 )
 
 random.seed(RANDOM_STATE)
-
-
 base_dir = Path(__file__).parent.parent
-print(base_dir)
 
 # Get data
-data_path = base_dir / "data" / "base.tumoreprimitivo.csv"
+data_path = base_dir / "data" / DATA_FILE_NAME
 # Se il file non è presente, inserirlo manualmente prendendolo dalla cartella dropbox
 data = pd.read_csv(data_path)
 
@@ -40,109 +46,59 @@ data = pd.read_csv(data_path)
 duplicati = data.iloc[:, 1:].duplicated(keep='last')
 data_clean = data[duplicati == False]
 # Rimuovi righe con report duplicati
-duplicati = data_clean['report_text'].duplicated(keep='last')
+duplicati = data_clean[REPORT__COLUMN_NAME].duplicated(keep='last')
 data_clean = data_clean[duplicati == False]
 # Resetta indici
 data_clean.reset_index(inplace=True, drop=True)
 
-print(f'{data_clean.shape = }')
+print(f'\nRighe doppie eliminate\n{data_clean.shape = }\n')
 
 
-# Keep omly report and target columns
+# Keep only report and target columns
 target_columns = ReportData.model_fields.keys()
-X = data_clean[['report_text'] + list(target_columns)].copy(deep=True)
-print(f'{X.shape = }')
+X = data_clean[[REPORT__COLUMN_NAME] + list(target_columns)].copy(deep=True)
+print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
+
+# Create dummies to stratify
+encoder = OneHotEncoder(sparse_output=False)
+encoder.fit(X[list(STRATIFY_COLUMNS)])
+Y_dummy = encoder.transform(X[list(STRATIFY_COLUMNS)])
+print(f'Create dummies per stratificazione\n{Y_dummy.shape = }')
 
 
-# Isola righe che hanno features appartenenti a classi poco numerose (minori di 2)
+# Split with stratification
+index_train, Y_train, index_test, Y_test = iterative_train_test_split(X.index.to_numpy().reshape(-1, 1), Y_dummy, test_size=TEST_SIZE)
 
-colonne = [
-    'lesioni_ossee',
-    'infiltrazione_sfinteri',
-    'infiltrazione_sfinteri',
-    'coinvolgimento_riflessione_peritoneale',
-    'coinvolgimento_riflessione_peritoneale',
-    'coinvolgimento_fascia_mesorettale',
-    'depositi_tumorali',
-    'stadio_N',
-    'stadio_N',
-    'mrf',
-    'infiltrazione_tessuto_adiposo'
-]
-valori = [
-    'si',
-    'interno',
-    'interno_piano_esterno',
-    'rischio',
-    'NaN',
-    'NaN',
-    'sospetto',
-    'N1c',
-    'NaN',
-    'NaN',
-    'NaN'
-]
+index_train = index_train.reshape(1, -1)[0]
+index_test = index_test.reshape(1, -1)[0]
 
-train_rows = []
-test_rows = []
-for col, val in zip(colonne, valori):
-    if val == 'NaN':
-        index = X[X[col].fillna('NaN') == val].index
-    else:
-        index = X[X[col] == val].index
-    if len(index) == 0:
-        continue
-    elif len(index) == 1:
-        train_rows.append(X.iloc[index])
-        # tolgo riga dal dataset
-        X.drop(index=index, inplace=True)
-    elif len(index) == 2:
-        x = random.randint(0, 1)
-        y = 1 - x
-        train_rows.append(X.iloc[index[x]].to_frame().T)
-        test_rows.append(X.iloc[index[y]].to_frame().T)
-        # Tolgo riga dal dataset
-        X.drop(index=index, inplace=True)
-    else:
-        continue
-    
-print('OK')
-print(f'{X.shape = }')
+X_train = X.iloc[index_train].copy(deep=True)
+X_test = X.iloc[index_test].copy(deep=True)
 
-# Crea gli split
-train_split = pd.concat(train_rows)
-test_split = pd.concat(test_rows)
+X_train['split'] = 'train'
+X_test['split'] = 'test'
 
-print(f'{train_split.shape = }')
-print(f'{test_split.shape = }')
-
-Y = X.drop(columns='report_text').copy(deep=True)
-X = X['report_text'].copy(deep=True)
-
-print(f'{X.shape = }')
-print(f'{Y.shape = }')
-
-# Selezioniamo solo le colonne su cui vogliamo stratificare
-X_strat = X.values
-Y_strat = Y[list(STRATIFY_COLUMNS)].values
-
-X_train, Y_train, X_test, Y_test = iterative_train_test_split(X_strat, Y_strat, test_size=TEST_SIZE)
+print(f'\nSplitatto il dataset\n{X_train.shape = }\n{X_test.shape = }')
 
 
+# Visualize stratification
+n_columns = 3
+n_rows, r = divmod(len(STRATIFY_COLUMNS), n_columns)
+if r != 0:
+    n_rows += 1
 
-exit()
+fig, axes = plt.subplots(n_rows, n_columns)
+fig.suptitle("Stratification", fontsize='xx-large')
 
-# Splitta i dati rimasti
-for col in STRATIFY_COLUMNS:
-    print(data_clean.fillna('NaN')[col].value_counts())
-    print("\n")
-    
-train, test = train_test_split(data_clean,
-                               test_size=TEST_SIZE,
-                               random_state=RANDOM_STATE,
-                               stratify=data_clean[list(STRATIFY_COLUMNS)].fillna('NaN'))
+df = pd.concat([X_train, X_test]).fillna('NaN')
+for i in range(len(STRATIFY_COLUMNS)):
+    sns.countplot(data=df, x=STRATIFY_COLUMNS[i], hue='split', ax=axes[i//n_columns][i%n_columns])
 
+plt.show()
 
-
-print(f'{train.shape = }')
-print(f'{test.shape = }')
+# Save data
+if False:
+    train_path = base_dir / "data" / TRAIN_SPLIT_FILE_NAME
+    X_train.to_csv(train_path, index=False)
+    test_path = base_dir / "data" / TEST_SPLIT_FILE_NAME
+    X_test.to_csv(test_path, index=False)
