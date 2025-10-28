@@ -28,7 +28,7 @@ SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
 
 TRAIN_SPLIT_NAME: str = 'train_split.csv'
 TEST_SPLIT_NAME: str = 'test_split.csv'
-VALIDATION_SPLIT_NAME: str | None = None
+VALIDATION_SPLIT_NAME: str | None = 'validation_split.csv'
 
 TIPO = 'huggingface'
 if TIPO != 'openai':
