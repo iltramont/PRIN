@@ -23,14 +23,14 @@ from sklearn.model_selection import train_test_split
 
 # VARIABILI
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
-NOME_FILE_GENERATO = "data_luca"
-SYSTEM_PROMPT_FILE_NAME = "system_prompt_1.txt"
+NOME_FILE_GENERATO = "data_finetune_hints"
+SYSTEM_PROMPT_FILE_NAME = "system_prompt_with_hints_1.txt"
 
 TRAIN_SPLIT_NAME: str = 'train_split.csv'
 TEST_SPLIT_NAME: str = 'test_split.csv'
 VALIDATION_SPLIT_NAME: str | None = 'validation_split.csv'
 
-TIPO = 'huggingface'
+TIPO = 'openai'
 if TIPO != 'openai':
     TIPO = 'huggingface'
 

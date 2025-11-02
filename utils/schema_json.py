@@ -50,7 +50,7 @@ class DepositiTumorali(str, Enum):
     si = "si"
     sospetto = "sospetto"
 
-class EMVIEsteso(str, Enum):
+class EmviEsteso(str, Enum):
     no = "no"
     si = "si"
     sospetto = "sospetto"
@@ -121,11 +121,11 @@ class ReportData(BaseModel):
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
     linfonodi_sospetti: int | None
-    sedi_locoregionali: SediLocoregionali
-    sedi_non_locoregionali: SediNonLocoregionali
+    sedi_linfonodi_locoregionali: SediLocoregionali
+    sedi_linfonodi_non_locoregionali: SediNonLocoregionali
     depositi_tumorali: DepositiTumorali | None
     numero_depositi: int | None
-    emvi_esteso: EMVIEsteso | None
+    emvi_esteso: EmviEsteso | None
     carcinosi_peritoneale: CarcinosiPeritoneale | None
     lesioni_ossee: LesioniOssee | None
     stadio_T: StadioT | None
@@ -134,6 +134,9 @@ class ReportData(BaseModel):
     mrf: Mrf | None
     emvi: Emvi | None
     metastasi: Metastasi | None
+
+    class Config:
+        use_enum_values = True
 
 
 class ReportDataOneLevel(BaseModel):
@@ -163,7 +166,7 @@ class ReportDataOneLevel(BaseModel):
     linfonodi_altri: bool     
     depositi_tumorali: DepositiTumorali | None
     numero_depositi: int | None
-    emvi_esteso: EMVIEsteso | None
+    emvi_esteso: EmviEsteso | None
     carcinosi_peritoneale: CarcinosiPeritoneale | None
     lesioni_ossee: LesioniOssee | None    
     stadio_T: StadioT | None
@@ -172,3 +175,6 @@ class ReportDataOneLevel(BaseModel):
     mrf: Mrf | None
     emvi: Emvi | None
     metastasi: Metastasi | None
+
+    class Config:
+        use_enum_values = True

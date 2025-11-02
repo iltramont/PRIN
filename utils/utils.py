@@ -91,15 +91,20 @@ def convert_row_to_json(row: pd.Series, system_content: str, style: str = 'opena
     assistant_content = dict()
     fields = ReportData.model_fields.keys()
     # Crea l'output desiderato
-    for f in fields:
+    for field in fields:
+        f = field
+        if f == 'sedi_linfonodi_locoregionali':
+            f = 'sedi_locoregionali'
+        if f == 'sedi_linfonodi_non_locoregionali':
+            f = 'sedi_non_locoregionali'
         if pd.notna(row[f]):
             value = row[f]  # Contenuto grezzo della colonna
             if f == 'sedi_non_locoregionali':
-                assistant_content[f] = convert_list_to_boolean_dict(value, SediNonLocoregionali.model_fields.keys())
+                assistant_content[field] = convert_list_to_boolean_dict(value, SediNonLocoregionali.model_fields.keys())
             elif f == 'sedi_locoregionali':
-                assistant_content[f] = convert_list_to_boolean_dict(value, SediLocoregionali.model_fields.keys())
+                assistant_content[field] = convert_list_to_boolean_dict(value, SediLocoregionali.model_fields.keys())
             else:
-                assistant_content[f] = value
+                assistant_content[field] = value
         else:
             assistant_content[f] = None
     report_data = ReportData.model_validate(assistant_content)
