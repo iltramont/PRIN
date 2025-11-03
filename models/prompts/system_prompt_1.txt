@@ -15,7 +15,7 @@ Schema JSON per l'output:
   "posizione": "basso | medio | alto | giunzione",
   "spessore_parietale": "int o null",
   "estensione_cranio_caudale": "int o null",
-  "distanza_oai": "int o null",
+  "distanza_oai": "float o null",
   "riflessione_peritoneale_anteriore": "sotto | cavallo | sopra",
   "infiltrazione_tessuto_adiposo": "no | si_5mm | si_5mm_plus | sospetto",
   "infiltrazione_sfinteri": "no | interno | interno_piano | interno_piano_esterno",

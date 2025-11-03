@@ -113,7 +113,7 @@ class ReportData(BaseModel):
     posizione: Posizione | None
     spessore_parietale: int | None
     estensione_cranio_caudale: int | None
-    distanza_oai: int | None
+    distanza_oai: float | None
     riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore | None
     infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo | None
     infiltrazione_sfinteri: InfiltrazioneSfinteri | None
@@ -144,7 +144,7 @@ class ReportDataOneLevel(BaseModel):
     posizione: Posizione | None
     spessore_parietale: int | None
     estensione_cranio_caudale: int | None
-    distanza_oai: int | None
+    distanza_oai: float | None
     riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore | None
     infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo | None
     infiltrazione_sfinteri: InfiltrazioneSfinteri | None

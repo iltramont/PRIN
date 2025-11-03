@@ -30,7 +30,7 @@ TRAIN_SPLIT_NAME: str = 'train_split.csv'
 TEST_SPLIT_NAME: str = 'test_split.csv'
 VALIDATION_SPLIT_NAME: str | None = 'validation_split.csv'
 
-TIPO = 'openai'
+TIPO = 'huggingface'
 if TIPO != 'openai':
     TIPO = 'huggingface'
 

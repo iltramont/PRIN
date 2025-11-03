@@ -13,7 +13,7 @@ plt.style.use('ggplot')
 
 
 TEST_SIZE = 0.2
-VALIDATION_SIZE = 0.05
+VALIDATION_SIZE = 0.006
 RANDOM_STATE = 2025
 DATA_FILE_NAME = "base.tumoreprimitivo.csv"
 
@@ -31,7 +31,10 @@ STRATIFY_COLUMNS = (
     'stadio_T',
     'stadio_N',
     'stadio_N1c',
-    'metastasi'
+    'metastasi',
+    'lesioni_ossee',
+    'coinvolgimento_riflessione_peritoneale',
+    'coinvolgimento_fascia_mesorettale'
 )
 
 random.seed(RANDOM_STATE)
@@ -57,8 +60,16 @@ print(f'\nRighe doppie eliminate\n{data_clean.shape = }\n')
 
 
 # Keep only report and target columns
-target_columns = ReportData.model_fields.keys()
-X = data_clean[[REPORT__COLUMN_NAME] + list(target_columns)].copy(deep=True)
+target_columns = list(ReportData.model_fields.keys())
+
+index = target_columns.index('sedi_linfonodi_locoregionali')
+target_columns[index] = 'sedi_locoregionali'  # Correzione nome colonna
+
+index = target_columns.index('sedi_linfonodi_non_locoregionali')
+target_columns[index] = 'sedi_non_locoregionali'  # Correzione nome colonna
+
+
+X = data_clean[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
 print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
 
 # Create dummies to stratify (train - test)
@@ -66,8 +77,6 @@ encoder = OneHotEncoder(sparse_output=False)
 encoder.fit(X[list(STRATIFY_COLUMNS)])
 Y_dummy = encoder.transform(X[list(STRATIFY_COLUMNS)])
 print(f'Create dummies per stratificazione\n{Y_dummy.shape = }')
-
-
 
 
 # Train test split with stratification
@@ -124,7 +133,9 @@ for i in range(len(STRATIFY_COLUMNS)):
 
 plt.show()
 
+
 # Manual adjustments
+"""
 # Stadio_N NaN
 df_manual = X_validation[X_validation.stadio_N.fillna('NaN') == 'NaN'].iloc[0:1].copy(deep=True)
 if len(df_manual) > 0:
@@ -165,6 +176,7 @@ for i in range(len(STRATIFY_COLUMNS)):
 
 plt.show()
 
+"""
 
 # Save data
 if True:
