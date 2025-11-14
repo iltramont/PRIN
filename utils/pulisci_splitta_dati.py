@@ -14,7 +14,7 @@ plt.style.use('ggplot')
 
 
 TEST_SIZE = 0.2
-VALIDATION_SIZE = 0.006
+VALIDATION_SIZE = 0.02
 RANDOM_STATE = 2025
 DATA_FILE_NAME = "base.tumoreprimitivo.csv"
 
@@ -59,8 +59,10 @@ data_clean.reset_index(inplace=True, drop=True)
 
 print(f'\nRighe doppie eliminate\n{data_clean.shape = }\n')
 
+
 # Sostituiamo valore -1 con 0 per la colonna numero depositi
 data_clean.loc[data_clean['numero_depositi'] == -1.0, 'numero_depositi'] = 0.0
+
 
 # Eliminiamo con combinazioni di valori incompatibili
 data_clean.drop(
@@ -75,34 +77,31 @@ data_clean.reset_index(inplace=True, drop=True)
 
 print(f'\nRighe con valori incompatibili eliminate\n{data_clean.shape = }\n')
 
-# Sostituiamo i valore con None nella colonna dei dettagli degli organi coinvolti pechè altri valori non sono compatibili con "no" nella colonna infiltrazione_organi_extra
+
+# Sostituiamo i valore con None nella colonna dei dettagli degli organi coinvolti
+# pechè altri valori non sono compatibili con "no" nella colonna infiltrazione_organi_extra
 for i in range(data_clean.shape[0]):
     if (data_clean.loc[i, 'infiltrazione_organi_extra'] == 'no') and (data_clean.loc[i, 'infiltrazione_organi_dettagli'] is not None):
         data_clean.loc[i, 'infiltrazione_organi_dettagli'] = None
 
-print(data_clean[(data_clean['infiltrazione_organi_dettagli'] > '') &
-                 (data_clean['infiltrazione_organi_extra'] == 'no')
-      ][
-          ['profile', 'infiltrazione_organi_dettagli', 'infiltrazione_organi_extra']
-      ])
 
-
-# creazione nuova colonna "sedi_linfonodi_sospetti"
+# creazione nuova colonna "sedi_linfonodi"
 sedi_linfonodi = []
 for s1, s2 in zip(data_clean.sedi_locoregionali, data_clean.sedi_non_locoregionali):
     sedi_linfonodi.append(str(ast.literal_eval(s1) + ast.literal_eval(s2)))
 data_clean['sedi_linfonodi'] = sedi_linfonodi
-
 print(f'Nuova colonna "sedi_linfonodi" creata\n{data_clean.shape = }')
 
 
 # Teniamo solo le colonne di Guido
-data_clean_guido = data_clean[data_clean['profile'] == 'GuidoImbemba']
+data_clean_guido = data_clean[data_clean['profile'] == 'GuidoImbemba'].copy(deep=True)
+del data_clean
 data_clean_guido.reset_index(inplace=True, drop=True)
 print(f'{data_clean_guido.shape = }')
 
+
 # Aggregazione / modifica delle colonne
-# Dettagli infiltrazione organi
+# Dettagli infiltrazione organi -> il formato della clonna viene reso uguale a quello dei linfonodi
 # Teniamo solo NaN, pavimento_pelvico e altro
 infiltrazione_organi_dettagli_new = []
 for s in data_clean_guido.infiltrazione_organi_dettagli.fillna('NaN'):
@@ -118,7 +117,6 @@ for s in data_clean_guido.infiltrazione_organi_dettagli.fillna('NaN'):
         infiltrazione_organi_dettagli_new.append(str(dettagli))
 data_clean_guido.loc[:, 'infiltrazione_organi_dettagli'] = infiltrazione_organi_dettagli_new
 
-#print(data_clean_guido.infiltrazione_organi_dettagli.value_counts())
 
 # Sedi linfonodi
 # Teniamo solo NaN, altro, mesorettali, rettali_superiori, otturatori, iliaci
@@ -135,49 +133,42 @@ for s in data_clean_guido.sedi_linfonodi:
             sedi_new.add('altro')
     sedi_linfonodi_new.append(str(list(sedi_new)))
 data_clean_guido.loc[:, 'sedi_linfonodi'] = sedi_linfonodi_new
-#print(data_clean_guido.sedi_linfonodi.value_counts())
+
 
 # Coinvolgimento fascia mesorettale. Trasformiamo rischio in si
 data_clean_guido.loc[data_clean_guido['coinvolgimento_fascia_mesorettale'] == 'rischio', 'coinvolgimento_fascia_mesorettale'] = 'si'
-#print(data_clean_guido.coinvolgimento_fascia_mesorettale.value_counts())
+
 
 # Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
 data_clean_guido.loc[data_clean_guido['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = 'si'
-#print(data_clean_guido.coinvolgimento_riflessione_peritoneale.value_counts())
+
 
 # Infiltrazione sfinteri. Trasformiamo la posizione in si. per otenere una classe (si/no/NaN)
 data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = 'si'
 data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = 'si'
 data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = 'si'
-#print(data_clean_guido.infiltrazione_sfinteri.value_counts())
 
-# Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
+
+# Emvi. Trasformiamo sospetto in si
 data_clean_guido.loc[data_clean_guido['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
-#print(data_clean_guido.emvi_esteso.value_counts())
 
 
-# PLOT
-data_plot = data_clean_guido
-
+# PLOT 1
+data_plot = data_clean_guido.fillna('NaN')
 columns_plot = ['morfologia', 'infiltrazione_tessuto_adiposo', 'coinvolgimento_fascia_mesorettale',
-                'carcinosi_peritoneale', 'riflessione_peritoneale_anteriore', 'coinvolgimento_riflessione_peritoneale',
+                'carcinosi_peritoneale', 'riflessione_peritoneale_anteriore',
+                'coinvolgimento_riflessione_peritoneale',
                 'stadio_T', 'stadio_N', 'stadio_N1c',
                 'mrf', 'emvi', 'metastasi',
                 'infiltrazione_sfinteri', 'infiltrazione_organi_extra',
                 'linfonodi_sospetti', 'numero_linfonodi_non_conosciuto', 'lesioni_ossee',
                 'depositi_tumorali', 'numero_depositi', 'emvi_esteso']
-
-# hue_column = None
-# columns_plot = [hue_column] + columns_plot
-
 n_columns = 3
 n_rows, r = divmod(len(columns_plot), n_columns)
 if r != 0:
     n_rows += 1
-
 fig, axes = plt.subplots(n_rows, n_columns, figsize=(n_columns * 7, n_rows * 3))
 fig.suptitle("Count values (Guido)", fontsize='xx-large')
-
 for i, col in enumerate(columns_plot):
     ax = axes[i // n_columns][i % n_columns]
     sns.countplot(data=data_plot, x=col, order=data_plot[col].value_counts().index, ax=ax)
@@ -186,24 +177,19 @@ for i, col in enumerate(columns_plot):
         y_text = int(p.get_height())
         x_text = p.get_x() + p.get_width() / 2
         ax.text(x=x_text, y=y_text, s=f'{y_text}', ha='center', va='bottom')
-
 plt.tight_layout()
-# plt.savefig("distribuzione_featurse_per_annotatore.png", dpi=300, bbox_inches='tight', transparent=False)
-plt.show()
+#plt.show()
 
-data_plot = data_clean_guido.fillna('NaN')
 
-# Analisi posizione, sedi locoregionali, sedi non locoregionali
+# PLOT 2
 columns = ['posizione_multiple', 'sedi_locoregionali', 'sedi_non_locoregionali', 'sedi_linfonodi',
            'infiltrazione_organi_dettagli']
 
 possible_values = {col: ['NaN'] for col in columns}
-
 for col in columns:
     for s in data_plot[col].value_counts().index:
         possible_values[col] += ast.literal_eval(s)
     possible_values[col] = list(set(possible_values[col]))
-
 counts = {
     col: {val: 0 for val in possible_values[col]}
     for col in columns
@@ -216,12 +202,10 @@ for col in columns:
                 counts[col][value] += 1
         if value_list == []:
             counts[col]['NaN'] += 1
-
 n_columns = 2
 n_rows, r = divmod(len(columns), n_columns)
 if r != 0:
     n_rows += 1
-
 fig, axes = plt.subplots(n_rows, n_columns, figsize=(21, n_rows * 3))
 orientation = 'h'
 for i, col in enumerate(columns):
@@ -239,25 +223,24 @@ for i, col in enumerate(columns):
             x_text = p.get_width()
             y_text = p.get_y() + p.get_height() / 2
             ax.text(x=x_text, y=y_text, s=f'{int(x_text)}', va='center', ha='left')
-
 plt.tight_layout()
-plt.show()
+#plt.show()
 
-
-exit()
 
 # Keep only report and target columns
 target_columns = list(ReportData.model_fields.keys())
 
-index = target_columns.index('sedi_linfonodi_locoregionali')
-target_columns[index] = 'sedi_locoregionali'  # Correzione nome colonna
+print(target_columns)
 
-index = target_columns.index('sedi_linfonodi_non_locoregionali')
-target_columns[index] = 'sedi_non_locoregionali'  # Correzione nome colonna
+#index = target_columns.index('sedi_linfonodi_locoregionali')
+#target_columns[index] = 'sedi_locoregionali'  # Correzione nome colonna
 
+#index = target_columns.index('sedi_linfonodi_non_locoregionali')
+#target_columns[index] = 'sedi_non_locoregionali'  # Correzione nome colonna
 
-X = data_clean[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
+X = data_clean_guido[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
 print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
+
 
 # Create dummies to stratify (train - test)
 encoder = OneHotEncoder(sparse_output=False)

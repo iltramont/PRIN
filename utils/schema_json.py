@@ -26,23 +26,28 @@ class InfiltrazioneTessutoAdiposo(str, Enum):
 
 class InfiltrazioneSfinteri(str, Enum):
     no = "no"
-    interno = "interno"
-    interno_piano = "interno_piano"
-    interno_piano_esterno = "interno_piano_esterno"
+    si = "si"
+#    interno = "interno"
+#    interno_piano = "interno_piano"
+#    interno_piano_esterno = "interno_piano_esterno"
 
 class InfiltrazioneOrganiExtra(str, Enum):
     no = "no"
     sospetto = "sospetto"
     si = "si"
+    
+class InfiltrazioneOrganiDettagli(BaseModel):
+    pavimento_pelvico: bool
+    altro: bool
 
 class CoinvolgimentoRiflessionePeritoneale(str, Enum):
     no = "no"
-    rischio = "rischio"
+#    rischio = "rischio"
     si = "si"
 
 class CoinvolgimentoFasciaMesorettale(str, Enum):
     no = "no"
-    rischio = "rischio"
+#    rischio = "rischio"
     si = "si"   
 
 class DepositiTumorali(str, Enum):
@@ -53,7 +58,7 @@ class DepositiTumorali(str, Enum):
 class EmviEsteso(str, Enum):
     no = "no"
     si = "si"
-    sospetto = "sospetto"
+#    sospetto = "sospetto"
 
 class CarcinosiPeritoneale(str, Enum):
     no = "no"
@@ -118,6 +123,8 @@ class Metastasi(str, Enum):
 class ReportData(BaseModel):
     morfologia: Morfologia | None
     posizione: Posizione | None
+    ore_inizio: int | None
+    ore_fine: int | None
     spessore_parietale: int | None
     estensione_cranio_caudale: int | None
     distanza_oai: float | None
@@ -125,6 +132,7 @@ class ReportData(BaseModel):
     infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo | None
     infiltrazione_sfinteri: InfiltrazioneSfinteri | None
     infiltrazione_organi_extra: InfiltrazioneOrganiExtra | None
+    infiltrazione_organi_dettagli: InfiltrazioneOrganiDettagli
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
     linfonodi_sospetti: int | None
