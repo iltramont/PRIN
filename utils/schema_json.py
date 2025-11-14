@@ -63,21 +63,28 @@ class LesioniOssee(str, Enum):
     no = "no"
     si = "si"
 
-class SediLocoregionali(BaseModel):
-    mesorettali: bool
-    rettali_superiori: bool 
-    mesenterici_inferiori: bool 
-    iliaci_interni: bool 
-    otturatori: bool 
-    sacrali: bool 
-    inguinali_sotto_dentata: bool 
+#class SediLocoregionali(BaseModel):
+#    mesorettali: bool
+#    rettali_superiori: bool 
+#    mesenterici_inferiori: bool 
+#    iliaci_interni: bool 
+#    otturatori: bool 
+#    sacrali: bool 
+#    inguinali_sotto_dentata: bool 
 
-class SediNonLocoregionali(BaseModel):
-    inguinali: bool
-    iliaci_esterni: bool 
-    iliaci_comuni: bool 
-    paraortici: bool 
-    altri: bool 
+#class SediNonLocoregionali(BaseModel):
+#    inguinali: bool
+#    iliaci_esterni: bool 
+#    iliaci_comuni: bool 
+#    paraortici: bool 
+#    altri: bool 
+    
+class SediLinfonodi(BaseModel):
+    mesorettali: bool
+    rettali_superiori: bool
+    otturatori: bool
+    iliaci: bool
+    altro: bool
 
 class StadioT(str, Enum):
     T3cd = "T3cd"
@@ -121,8 +128,9 @@ class ReportData(BaseModel):
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
     linfonodi_sospetti: int | None
-    sedi_linfonodi_locoregionali: SediLocoregionali
-    sedi_linfonodi_non_locoregionali: SediNonLocoregionali
+#    sedi_linfonodi_locoregionali: SediLocoregionali
+#    sedi_linfonodi_non_locoregionali: SediNonLocoregionali
+    sedi_linfonodi: SediLinfonodi
     depositi_tumorali: DepositiTumorali | None
     numero_depositi: int | None
     emvi_esteso: EmviEsteso | None

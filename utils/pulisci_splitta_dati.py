@@ -103,6 +103,7 @@ print(f'{data_clean_guido.shape = }')
 
 # Aggregazione / modifica delle colonne
 # Dettagli infiltrazione organi
+# Teniamo solo NaN, pavimento_pelvico e altro
 infiltrazione_organi_dettagli_new = []
 for s in data_clean_guido.infiltrazione_organi_dettagli.fillna('NaN'):
     dettagli = []
@@ -120,6 +121,7 @@ data_clean_guido.loc[:, 'infiltrazione_organi_dettagli'] = infiltrazione_organi_
 #print(data_clean_guido.infiltrazione_organi_dettagli.value_counts())
 
 # Sedi linfonodi
+# Teniamo solo NaN, altro, mesorettali, rettali_superiori, otturatori, iliaci
 sedi_linfonodi_new = []
 for s in data_clean_guido.sedi_linfonodi:
     sedi = ast.literal_eval(s)
