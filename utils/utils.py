@@ -92,21 +92,18 @@ def convert_row_to_json(row: pd.Series, system_content: str, style: str = 'opena
     fields = ReportData.model_fields.keys()
     # Crea l'output desiderato
     for field in fields:
-        f = field
-        if f == 'sedi_linfonodi_locoregionali':
-            f = 'sedi_locoregionali'
-        if f == 'sedi_linfonodi_non_locoregionali':
-            f = 'sedi_non_locoregionali'
-        if pd.notna(row[f]):
-            value = row[f]  # Contenuto grezzo della colonna
-            if f == 'sedi_non_locoregionali':
-                assistant_content[field] = convert_list_to_boolean_dict(value, SediNonLocoregionali.model_fields.keys())
-            elif f == 'sedi_locoregionali':
-                assistant_content[field] = convert_list_to_boolean_dict(value, SediLocoregionali.model_fields.keys())
+        if pd.notna(row[field]):
+            value = row[field]  # Contenuto grezzo della colonna
+            if field == 'sedi_linfonodi':
+                assistant_content[field] = convert_list_to_boolean_dict(value, SediLinfonodi.model_fields.keys())
+            elif field == 'posizione':
+                assistant_content[field] = convert_list_to_boolean_dict(value, Posizione.model_fields.keys())
+            elif field == 'infiltrazione_organi_dettagli':
+                assistant_content[field] = convert_list_to_boolean_dict(value, InfiltrazioneOrganiDettagli.model_fields.keys())
             else:
                 assistant_content[field] = value
         else:
-            assistant_content[f] = None
+            assistant_content[field] = None
     report_data = ReportData.model_validate(assistant_content)
     assistant_content = report_data.model_dump(mode='json')
     if style == 'openai':

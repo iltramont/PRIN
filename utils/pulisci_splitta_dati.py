@@ -24,7 +24,7 @@ VALIDATION_SPLIT_FILE_NAME = 'validation_split.csv'
 
 REPORT__COLUMN_NAME = 'report_text'
 STRATIFY_COLUMNS = (
-    'posizione',
+    'morfologia',
     'infiltrazione_sfinteri',
     'infiltrazione_tessuto_adiposo',
     'depositi_tumorali',
@@ -33,9 +33,9 @@ STRATIFY_COLUMNS = (
     'stadio_N',
     'stadio_N1c',
     'metastasi',
-    'lesioni_ossee',
     'coinvolgimento_riflessione_peritoneale',
-    'coinvolgimento_fascia_mesorettale'
+    'coinvolgimento_fascia_mesorettale',
+    'infiltrazione_organi_extra'
 )
 
 random.seed(RANDOM_STATE)
@@ -45,6 +45,14 @@ base_dir = Path(__file__).parent.parent
 data_path = base_dir / "data" / DATA_FILE_NAME
 # Se il file non è presente, inserirlo manualmente prendendolo dalla cartella dropbox
 data = pd.read_csv(data_path)
+
+
+# Elimina la colonna "posizione" in quanto obsoleta, rinominando la colonna "posizione_multiple" in "posizione"
+data.drop(columns=['posizione'], inplace=True)
+data.rename(columns={'posizione_multiple': 'posizione'}, inplace=True)
+
+# Elimina colonne "carcinosi peritoneale" e "lesioni ossee" in quanto solo rispettivamente 1 e 2 record sono valorizzati.
+data.drop(columns=['carcinosi_peritoneale', 'lesioni_ossee'], inplace=True)
 
 
 # Elimina righe doppie
@@ -153,15 +161,19 @@ data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno_pian
 data_clean_guido.loc[data_clean_guido['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
 
 
+# Depositi tumorali. Trasformiamo sospetto in si
+data_clean_guido.loc[data_clean_guido['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = 'si'
+
+
 # PLOT 1
 data_plot = data_clean_guido.fillna('NaN')
 columns_plot = ['morfologia', 'infiltrazione_tessuto_adiposo', 'coinvolgimento_fascia_mesorettale',
-                'carcinosi_peritoneale', 'riflessione_peritoneale_anteriore',
+                'riflessione_peritoneale_anteriore',
                 'coinvolgimento_riflessione_peritoneale',
                 'stadio_T', 'stadio_N', 'stadio_N1c',
                 'mrf', 'emvi', 'metastasi',
                 'infiltrazione_sfinteri', 'infiltrazione_organi_extra',
-                'linfonodi_sospetti', 'numero_linfonodi_non_conosciuto', 'lesioni_ossee',
+                'linfonodi_sospetti', 'numero_linfonodi_non_conosciuto',
                 'depositi_tumorali', 'numero_depositi', 'emvi_esteso']
 n_columns = 3
 n_rows, r = divmod(len(columns_plot), n_columns)
@@ -182,7 +194,7 @@ plt.tight_layout()
 
 
 # PLOT 2
-columns = ['posizione_multiple', 'sedi_locoregionali', 'sedi_non_locoregionali', 'sedi_linfonodi',
+columns = ['posizione', 'sedi_locoregionali', 'sedi_non_locoregionali', 'sedi_linfonodi',
            'infiltrazione_organi_dettagli']
 
 possible_values = {col: ['NaN'] for col in columns}

@@ -85,15 +85,16 @@ def main():
         counter += 1
 
     # Stampa percorso per controllo
-    print(f"File will be saved to: {train_file_path}, {test_file_path}, {val_file_path}")
-    # Salva
-    for f_path, dict_list in zip(
-        [train_file_path, test_file_path] + ([val_file_path] if VALIDATION_SPLIT_NAME is not None else []),
-        [train_dicts, test_dicts] + ([validation_dicts] if VALIDATION_SPLIT_NAME is not None else [])
-    ):
-        with open(f_path, 'w', encoding='utf-8') as f:
-                for json_dict in dict_list:
-                    f.write(json.dumps(json_dict) + '\n')
+    if CREATE_FILE:
+        print(f"File will be saved to: {train_file_path}, {test_file_path}, {val_file_path}")
+        # Salva
+        for f_path, dict_list in zip(
+            [train_file_path, test_file_path] + ([val_file_path] if VALIDATION_SPLIT_NAME is not None else []),
+            [train_dicts, test_dicts] + ([validation_dicts] if VALIDATION_SPLIT_NAME is not None else [])
+        ):
+            with open(f_path, 'w', encoding='utf-8') as f:
+                    for json_dict in dict_list:
+                        f.write(json.dumps(json_dict) + '\n')
 
 
 if __name__ == '__main__':

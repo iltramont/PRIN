@@ -7,11 +7,17 @@ class Morfologia(str, Enum):
     solido_anulare = "solido_anulare"
     mucinoso = "mucinoso"
 
-class Posizione(str, Enum):
-    basso = "basso"
-    medio = "medio"
-    alto = "alto"
-    giunzione = "giunzione"
+#class Posizione(str, Enum):
+#    basso = "basso"
+#    medio = "medio"
+#    alto = "alto"
+#    giunzione = "giunzione"
+
+class Posizione(BaseModel):
+    basso: bool
+    medio: bool
+    alto: bool
+    giunzione: bool
 
 class RiflessionePeritonealeAnteriore(str, Enum):
     sotto = "sotto"
@@ -60,13 +66,13 @@ class EmviEsteso(str, Enum):
     si = "si"
 #    sospetto = "sospetto"
 
-class CarcinosiPeritoneale(str, Enum):
-    no = "no"
-    si = "si"
+#class CarcinosiPeritoneale(str, Enum):
+#    no = "no"
+#    si = "si"
 
-class LesioniOssee(str, Enum):
-    no = "no"
-    si = "si"
+#class LesioniOssee(str, Enum):
+#    no = "no"
+#    si = "si"
 
 #class SediLocoregionali(BaseModel):
 #    mesorettali: bool
@@ -122,7 +128,7 @@ class Metastasi(str, Enum):
 
 class ReportData(BaseModel):
     morfologia: Morfologia | None
-    posizione: Posizione | None
+    posizione: Posizione
     ore_inizio: int | None
     ore_fine: int | None
     spessore_parietale: int | None
@@ -142,8 +148,8 @@ class ReportData(BaseModel):
     depositi_tumorali: DepositiTumorali | None
     numero_depositi: int | None
     emvi_esteso: EmviEsteso | None
-    carcinosi_peritoneale: CarcinosiPeritoneale | None
-    lesioni_ossee: LesioniOssee | None
+#    carcinosi_peritoneale: CarcinosiPeritoneale | None
+#    lesioni_ossee: LesioniOssee | None
     stadio_T: StadioT | None
     stadio_N: StadioN | None
     stadio_N1c: bool
@@ -157,7 +163,7 @@ class ReportData(BaseModel):
 
 class ReportDataOneLevel(BaseModel):
     morfologia: Morfologia | None
-    posizione: Posizione | None
+    posizione: Posizione
     spessore_parietale: int | None
     estensione_cranio_caudale: int | None
     distanza_oai: float | None
@@ -183,8 +189,8 @@ class ReportDataOneLevel(BaseModel):
     depositi_tumorali: DepositiTumorali | None
     numero_depositi: int | None
     emvi_esteso: EmviEsteso | None
-    carcinosi_peritoneale: CarcinosiPeritoneale | None
-    lesioni_ossee: LesioniOssee | None    
+#    carcinosi_peritoneale: CarcinosiPeritoneale | None
+#    lesioni_ossee: LesioniOssee | None    
     stadio_T: StadioT | None
     stadio_N: StadioN | None
     stadio_N1c: bool
