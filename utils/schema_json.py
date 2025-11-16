@@ -141,6 +141,7 @@ class ReportData(BaseModel):
     infiltrazione_organi_dettagli: InfiltrazioneOrganiDettagli
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale | None
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale | None
+    numero_linfonodi_non_conosciuto: bool
     linfonodi_sospetti: int | None
 #    sedi_linfonodi_locoregionali: SediLocoregionali
 #    sedi_linfonodi_non_locoregionali: SediNonLocoregionali
