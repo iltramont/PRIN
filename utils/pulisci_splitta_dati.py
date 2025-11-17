@@ -14,7 +14,7 @@ plt.style.use('ggplot')
 
 
 TEST_SIZE = 0.2
-VALIDATION_SIZE = 0.02
+VALIDATION_SIZE = 0.2
 RANDOM_STATE = 2025
 DATA_FILE_NAME = "base.tumoreprimitivo.csv"
 
@@ -101,18 +101,11 @@ data_clean['sedi_linfonodi'] = sedi_linfonodi
 print(f'Nuova colonna "sedi_linfonodi" creata\n{data_clean.shape = }')
 
 
-# Teniamo solo le colonne di Guido
-data_clean_guido = data_clean[data_clean['profile'] == 'GuidoImbemba'].copy(deep=True)
-del data_clean
-data_clean_guido.reset_index(inplace=True, drop=True)
-print(f'{data_clean_guido.shape = }')
-
-
 # Aggregazione / modifica delle colonne
 # Dettagli infiltrazione organi -> il formato della clonna viene reso uguale a quello dei linfonodi
 # Teniamo solo NaN, pavimento_pelvico e altro
 infiltrazione_organi_dettagli_new = []
-for s in data_clean_guido.infiltrazione_organi_dettagli.fillna('NaN'):
+for s in data_clean.infiltrazione_organi_dettagli.fillna('NaN'):
     dettagli = []
     if s == 'NaN':
         infiltrazione_organi_dettagli_new.append(str(dettagli))
@@ -123,13 +116,13 @@ for s in data_clean_guido.infiltrazione_organi_dettagli.fillna('NaN'):
         if ('altro' in d) or ('utero' in d) or ('sacro' in d):
             dettagli.append('altro')
         infiltrazione_organi_dettagli_new.append(str(dettagli))
-data_clean_guido.loc[:, 'infiltrazione_organi_dettagli'] = infiltrazione_organi_dettagli_new
+data_clean.loc[:, 'infiltrazione_organi_dettagli'] = infiltrazione_organi_dettagli_new
 
 
 # Sedi linfonodi
 # Teniamo solo NaN, altro, mesorettali, rettali_superiori, otturatori, iliaci
 sedi_linfonodi_new = []
-for s in data_clean_guido.sedi_linfonodi:
+for s in data_clean.sedi_linfonodi:
     sedi = ast.literal_eval(s)
     sedi_new = set()
     for sede in sedi:
@@ -140,33 +133,33 @@ for s in data_clean_guido.sedi_linfonodi:
         else:
             sedi_new.add('altro')
     sedi_linfonodi_new.append(str(list(sedi_new)))
-data_clean_guido.loc[:, 'sedi_linfonodi'] = sedi_linfonodi_new
+data_clean.loc[:, 'sedi_linfonodi'] = sedi_linfonodi_new
 
 
 # Coinvolgimento fascia mesorettale. Trasformiamo rischio in si
-data_clean_guido.loc[data_clean_guido['coinvolgimento_fascia_mesorettale'] == 'rischio', 'coinvolgimento_fascia_mesorettale'] = 'si'
+data_clean.loc[data_clean['coinvolgimento_fascia_mesorettale'] == 'rischio', 'coinvolgimento_fascia_mesorettale'] = 'si'
 
 
 # Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
-data_clean_guido.loc[data_clean_guido['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = 'si'
+data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = 'si'
 
 
 # Infiltrazione sfinteri. Trasformiamo la posizione in si. per otenere una classe (si/no/NaN)
-data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = 'si'
-data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = 'si'
-data_clean_guido.loc[data_clean_guido['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = 'si'
+data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = 'si'
+data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = 'si'
+data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = 'si'
 
 
 # Emvi. Trasformiamo sospetto in si
-data_clean_guido.loc[data_clean_guido['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
+data_clean.loc[data_clean['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
 
 
 # Depositi tumorali. Trasformiamo sospetto in si
-data_clean_guido.loc[data_clean_guido['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = 'si'
+data_clean.loc[data_clean['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = 'si'
 
 
 # PLOT 1
-data_plot = data_clean_guido.fillna('NaN')
+data_plot = data_clean.fillna('NaN')
 columns_plot = ['morfologia', 'infiltrazione_tessuto_adiposo', 'coinvolgimento_fascia_mesorettale',
                 'riflessione_peritoneale_anteriore',
                 'coinvolgimento_riflessione_peritoneale',
@@ -250,7 +243,18 @@ print(target_columns)
 #index = target_columns.index('sedi_linfonodi_non_locoregionali')
 #target_columns[index] = 'sedi_non_locoregionali'  # Correzione nome colonna
 
-X = data_clean_guido[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
+
+# Teniamo solo le colonne di Guido
+data_guido = data_clean[data_clean['profile'] == 'GuidoImbemba'].copy(deep=True)
+data_pietro = data_clean[data_clean['profile'] == 'PietroPaoloAzzaro'].copy(deep=True)
+del data_clean
+data_guido.reset_index(inplace=True, drop=True)
+data_pietro.reset_index(inplace=True, drop=True)
+print(f'{data_guido.shape = }')
+print(f'{data_pietro.shape = }')
+
+
+X = data_guido[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
 print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
 
 
@@ -272,7 +276,7 @@ index_test = index_test.reshape(1, -1)[0]
 X_train = X.iloc[index_train].copy(deep=True)
 X_test = X.iloc[index_test].copy(deep=True)
 
-
+"""
 # Create dummies to stratify (train - validation)
 encoder = OneHotEncoder(sparse_output=False)
 encoder.fit(X_train[list(STRATIFY_COLUMNS)])
@@ -291,14 +295,19 @@ index_validation = index_validation.reshape(1, -1)[0]
 
 X_validation = X_train.loc[index_validation].copy(deep=True)
 X_train = X_train.loc[index_train].copy(deep=True)
+"""
 
+# Use data_pietro for validation
+X_validation = data_pietro[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
+print(f'Selezionate solo colonne di interesse per lo split di validazione\n{X_validation.shape = }\n')
+n_validation = int(X.shape[0] * VALIDATION_SIZE)
+X_validation = X_validation.iloc[:n_validation, :]
 
 X_train['split'] = 'train'
 X_test['split'] = 'test'
 X_validation['split'] = 'validation'
 
 print(f'\nSplitatto il dataset\n{X_train.shape = }\n{X_test.shape = }\n{X_validation.shape = }')
-
 
 # Visualize stratification
 n_columns = 3

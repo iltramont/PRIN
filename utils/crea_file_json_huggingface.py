@@ -23,7 +23,7 @@ from sklearn.model_selection import train_test_split
 
 # VARIABILI
 CREATE_FILE = True  # Impostare a False se non si vuole creare il file json
-NOME_FILE_GENERATO = "data_finetune_final"
+NOME_FILE_GENERATO = "data_finetune_guido"
 SYSTEM_PROMPT_FILE_NAME = "system_prompt_final.txt"
 
 TRAIN_SPLIT_NAME: str = 'train_split.csv'
