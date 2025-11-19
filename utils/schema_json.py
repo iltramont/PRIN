@@ -201,3 +201,11 @@ class ReportDataOneLevel(BaseModel):
 
     class Config:
         use_enum_values = True
+
+
+class AnnotatedReport(BaseModel):
+    report_text: str
+    report_data: ReportData
+
+    class Config:
+        use_enum_values = True
