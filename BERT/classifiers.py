@@ -4,10 +4,6 @@ import sys
 from pathlib import Path
 from transformers import AutoModel
 
-project_root = Path.cwd().resolve().parent
-sys.path.insert(0, str(project_root))
-
-from utils.schema_json import *
 
 
 class SimpleExtractor(nn.Module):
