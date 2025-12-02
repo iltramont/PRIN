@@ -32,9 +32,9 @@ class RiflessionePeritonealeAnteriore(str, Enum):
 
 class InfiltrazioneTessutoAdiposo(str, Enum):      
     No = "no"
+    Sospetto = "sospetto"
     Si5mm = "si_5mm"
     Si5mmPlus = "si_5mm_plus"
-    Sospetto = "sospetto"
 
 class SiNo(str, Enum):
     No = "no"
@@ -62,8 +62,8 @@ class StadioN(str, Enum):
     NPlus = "N+"
      
 class PlusMinus(str, Enum):
-    Plus = "+"
     Minus = "-"
+    Plus = "+"
 
 class Metastasi(str, Enum):
     MX = "MX"
@@ -110,41 +110,3 @@ class AnnotatedReport(BaseModel):
         use_enum_values=True,
         validate_assignment=True,
     )
-
-
-def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
-    """
-    Restituisce un dizionario con i campi Enum e bool del modello
-    e i valori possibili per ciascuno.
-    """
-    field_values = {}
-    hints = get_type_hints(model)
-
-    for field_name, field_type in hints.items():
-        # Gestione Optional
-        if get_origin(field_type) is Union:
-            args = [t for t in get_args(field_type) if t is not type(None)]
-            if args:
-                field_type = args[0]
-
-        # Gestione List
-        if get_origin(field_type) is list:
-            args = get_args(field_type)
-            if args:
-                field_type = args[0]
-
-        # Se è un Enum
-        if isinstance(field_type, type) and issubclass(field_type, Enum):
-            field_values[field_name] = [e.value for e in field_type]
-
-        # Se è un bool
-        elif field_type is bool:
-            field_values[field_name] = [True, False]
-
-    return field_values
-
-        
-if __name__ == "__main__":
-    from pprint import pprint
-
-    pprint(get_field_values(Annotations))
