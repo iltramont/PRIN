@@ -40,6 +40,7 @@ class ReportExtractor(nn.Module):
     def __init__(self, checkpoint="bert-base-multilingual-cased", annotations_model: type[BaseModel]=Annotations, use_pooler_output: bool=False):
         super().__init__()
         self.checkpoint = checkpoint
+        self.annotations_model = annotations_model
         self.use_pooler_output = use_pooler_output
         self.regression_fields = get_regression_fields(annotations_model)
         self.multiple_choice_fields = get_multiple_choice_fields(annotations_model)
