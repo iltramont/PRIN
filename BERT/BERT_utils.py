@@ -113,15 +113,32 @@ def create_label_to_id_map(model: type[BaseModel]) -> dict[str, dict[str, dict[s
         }
     return result
 
+
+def labels_to_bits(labels: list[str], label_to_id_map: dict[str, int]) -> list[int]:
+    result = [0] * len(label_to_id_map)
+    for label in labels:
+        result[label_to_id_map[label]] = 1
+    return result
+
+
+def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str]:
+    result = []
+    for i, bit in enumerate(bits):
+        if bit == 1:
+            result.append(id_to_label_map[i])
+    return result
+
         
 if __name__ == "__main__":
     from constants import Annotations
     from pprint import pprint
 
-    field = 'coinvolgimento_fascia_mesorettale'
+    field = 'posizione'
     pprint(get_field_values(Annotations)[field])
     pprint(get_number_of_classes(Annotations)[field])
     pprint(create_label_to_id_map(Annotations)[field])
-    pprint(get_regression_fields(Annotations))
-    pprint(get_multiple_choice_fields(Annotations))
-    pprint(get_classification_fields(Annotations))
+    map = create_label_to_id_map(Annotations)[field]['label_to_id']
+    print(labels_to_bits(['giunzione', 'medio'], map))
+    map = create_label_to_id_map(Annotations)[field]['id_to_label']
+    print(map)
+    print(bits_to_labels([0, 1, 0, 1], map))
