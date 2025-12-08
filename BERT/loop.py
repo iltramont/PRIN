@@ -1,35 +1,11 @@
-import sys
-import os
-from dotenv import load_dotenv
-from pathlib import Path
-
-# if notebook is in PRIN/notebooks, parent() is PRIN
-#project_root = Path.cwd().resolve().parent
-#sys.path.insert(0, str(project_root))
-#print("Added to sys.path:", project_root)
-
-import json
-from constants import Annotations, AnnotatedReport
-import time
-from IPython.display import clear_output
-
-from huggingface_hub import login
-
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.optim import Adam
 
+from datasets import Dataset
 
-from transformers import AutoTokenizer, DefaultDataCollator
-from datasets import load_dataset, Dataset, DatasetDict
-
-
-from classifiers import SimpleExtractor
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
-import numpy as np
-
 
 
 def get_loss(field, prediction, target, regression_fields, classification_fields, multiple_choice_fields):
@@ -43,100 +19,108 @@ def get_loss(field, prediction, target, regression_fields, classification_fields
     return None
 
 
-def evaluate(model, dataset, batch_size=16):
-    """Evaluation loop: calcola la loss media e accuracy per classificazione."""
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    device = model.device
+def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
+    """Evaluation loop: calcola la loss media e altre metriche"""
+    dataloader_eval = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    device = next(model.parameters()).device
     model.eval()
 
     total_loss = 0.0
     # Contatori per metriche
-    classification_preds, classification_targets = ({f: [] for f in model.regression_fields},
-                                                    {f: [] for f in model.regression_fields})
+    classification_preds, classification_targets = ({f: [] for f in model.classification_fields},
+                                                    {f: [] for f in model.classification_fields})
     regression_preds, regression_targets = ({f: [] for f in model.regression_fields},
                                             {f: [] for f in model.regression_fields})
     multilabel_preds, multilabel_targets = ({f: [] for f in model.multiple_choice_fields},
                                             {f: [] for f in model.multiple_choice_fields})
 
     with torch.no_grad():
-            for batch in dataloader:
-                input_ids, attention_mask, labels_dict = batch
-                input_ids = input_ids.to(device)
-                attention_mask = attention_mask.to(device)
+        for batch in dataloader_eval:
+            input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
+            input_ids = input_ids.to(device)
+            attention_mask = attention_mask.to(device)
 
-                outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
-                for field, prediction in outputs.items():
-                    if field not in labels_dict:
-                        continue
-                    target = labels_dict[field].to(device)
+            losses = []
+            for field, prediction in outputs.items():
+                target = batch[field].to(device)
+                # Loss
+                field_loss = get_loss(
+                    field, prediction, target,
+                    model.regression_fields,
+                    model.classification_fields,
+                    model.multiple_choice_fields
+                )
+                losses.append(field_loss)
 
-                    # Loss
-                    field_loss = get_loss(
-                        field, prediction, target,
-                        model.regression_fields,
-                        model.classification_fields,
-                        model.multiple_choice_fields
-                    )
-                    total_loss += field_loss.item()
+                # Regressione
+                if field in model.regression_fields:
+                    regression_preds[field].extend(prediction.squeeze(-1).cpu().numpy())
+                    regression_targets[field].extend(target.cpu().numpy())
 
-                    # Regressione
-                    if field in model.regression_fields:
-                        regression_preds[field].extend(prediction.squeeze(-1).cpu().numpy())
-                        regression_targets[field].extend(target.cpu().numpy())
+                # Classificazione
+                elif field in model.classification_fields:
+                    preds = prediction.argmax(dim=-1)
+                    classification_preds[field].extend(preds.cpu().numpy())
+                    classification_targets[field].extend(target.cpu().numpy())
 
-                    # Classificazione
-                    elif field in model.classification_fields:
-                        preds = prediction.argmax(dim=-1)
-                        classification_preds[field].extend(preds.cpu().numpy())
-                        classification_targets[field].extend(target.cpu().numpy())
+                # Multilabel / multiple choice
+                elif field in model.multiple_choice_fields:
+                    preds = (torch.sigmoid(prediction) > 0.5).int()
+                    multilabel_preds[field].extend(preds.cpu().numpy())
+                    multilabel_targets[field].extend(target.cpu().numpy())      
+            
+            loss = sum(losses) / len(losses)
+            total_loss += loss.item()
+                
+        # Loss
+        print(f"Validation loss: {total_loss / len(dataloader_eval):.4f}")
 
-                    # Multilabel / multiple choice
-                    elif field in model.multiple_choice_fields:
-                        preds = (prediction > 0).int()
-                        multilabel_preds[field].extend(preds.cpu().numpy())
-                        multilabel_targets[field].extend(target.cpu().numpy())
-
-    # Regressione
-    for field in regression_preds:
-        if regression_preds[field]:
+        # Regressione
+        for field in regression_preds:
             mae = mean_absolute_error(regression_targets[field], regression_preds[field])
             r2 = r2_score(regression_targets[field], regression_preds[field])
-            print(f"Regression {field}: MAE={mae:.4f}, R²={r2:.4f}")
+            if verbose > 1:
+                print(f"Regression {field}: MAE={mae:.4f}, R²={r2:.4f}")
 
-    # Classificazione
-    for field in classification_preds:
-        if classification_preds[field] > 0:
+        # Classificazione
+        for field in classification_preds:
             acc = accuracy_score(classification_targets[field], classification_preds[field])
-            print(f"Accuracy {field}: {acc:.2%}")
+            if verbose > 1:
+                print(f"Accuracy {field}: {acc:.2%}")
 
-    # Multilabel / multiple choice
-    for field in multilabel_preds:
-        if multilabel_preds[field]:
-            f1 = f1_score(multilabel_targets[field], multilabel_preds[field], average="micro")
-            precision = precision_score(multilabel_targets[field], multilabel_preds[field], average="micro")
-            recall = recall_score(multilabel_targets[field], multilabel_preds[field], average="micro")
-            print(f"Multilabel {field}: F1={f1:.4f}, Precision={precision:.4f}, Recall={recall:.4f}")
+        # Multilabel / multiple choice
+        for field in multilabel_preds:
+            f1 = f1_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
+            precision = precision_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
+            recall = recall_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
+            if verbose > 1:
+                print(f"Multilabel {field}: F1={f1:.4f}, Precision={precision:.4f}, Recall={recall:.4f}")
+    return total_loss / len(dataloader_eval)
 
 
-def train(model, dataset, epochs=3, batch_size=16, lr=2e-5):
+def train(model, dataset_train: Dataset, epochs: int, batch_size: int, lr: float = 2e-5,
+          dataset_validation: Dataset| None =None, batch_size_val: int = 2, verbose: int = 1):
     """
     Training loop generico per ReportExtractor.
     - model: istanza del modello
-    - dataset: oggetto Dataset che restituisce (input_ids, attention_mask, labels_dict)
+    - dataset: oggetto Dataset che restituisce (input_ids, attention_mask)
     - epochs: numero di epoche
     - batch_size: dimensione batch
     - lr: learning rate
     """
-    device = model.device
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    device = next(model.parameters()).device
+    dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
     optimizer = Adam(model.parameters(), lr=lr)
 
+    loss_lists = {'train': [] , 'validation': []}
+    
     for epoch in range(epochs):
         model.train()
         total_loss = 0.0
-        for batch in tqdm(dataloader):
-            input_ids, attention_mask, labels_dict = batch
+        for batch in tqdm(dataloader_train):
+            input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
             input_ids = input_ids.to(device)
             attention_mask = attention_mask.to(device)
 
@@ -144,24 +128,30 @@ def train(model, dataset, epochs=3, batch_size=16, lr=2e-5):
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
             # Calcola loss per ogni campo
-            loss = 0.0
+            losses = []
             for field, prediction in outputs.items():
-                if field not in labels_dict:
-                    continue
-                target = labels_dict[field].to(device)
+                target = batch[field].to(device)
                 field_loss = get_loss(
                     field, prediction, target,
                     model.regression_fields,
                     model.classification_fields,
                     model.multiple_choice_fields
                 )
-                loss += field_loss
+                losses.append(field_loss)
+            loss = sum(losses) / len(losses)
 
             # Backprop
             optimizer.zero_grad()
             loss.backward()
+            #torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
             total_loss += loss.item()
-
-        print(f"Epoch {epoch+1}/{epochs} - Training loss: {total_loss/len(dataloader):.4f}")
+        
+        loss_lists['train'].append(total_loss/len(dataloader_train))
+        print(f"Epoch {epoch+1}/{epochs} - Training loss: {total_loss/len(dataloader_train):.4f}")
+        if dataset_validation is not None:
+            eval_loss = evaluate(model, dataset_validation, batch_size_val, verbose)
+            loss_lists['validation'].append(eval_loss)
+            
+    return loss_lists
