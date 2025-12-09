@@ -79,8 +79,10 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
 
         # Regressione
         for field in regression_preds:
-            mae = mean_absolute_error(regression_targets[field], regression_preds[field])
-            r2 = r2_score(regression_targets[field], regression_preds[field])
+            target = regression_targets[field]
+            preds = regression_preds[field]
+            mae = mean_absolute_error(target, preds)
+            r2 = r2_score(target, preds)
             if verbose > 1:
                 print(f"Regression {field}: MAE={mae:.4f}, R²={r2:.4f}")
 
