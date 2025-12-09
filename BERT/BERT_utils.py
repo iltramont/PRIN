@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
-from typing import Union, get_type_hints, get_origin, get_args
+from typing import Union, get_type_hints, get_origin, get_args, Optional
 
 NAN_VALUE = 'NaN'
 
@@ -25,6 +25,20 @@ def get_regression_fields(model: type[BaseModel]) -> list[str]:
                 regression_fields.append(name)
     return regression_fields
 
+def get_optional_regression_fields(model: type[BaseModel]) -> list[str]:
+    """
+    Analizza il modello Pydantic e restituisce i campi numerici che possono anche essere nulli.
+    """
+    regression_fields = get_regression_fields(model)
+    result = []
+    for field in regression_fields:
+        field_type = model.model_fields[field].annotation
+        origin = get_origin(field_type) or field_type
+        if origin is Union:
+            args = get_args(field_type)
+            if type(None) in args:
+                result.append(field)
+    return result
 
 def get_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
     """
@@ -136,9 +150,5 @@ if __name__ == "__main__":
     field = 'posizione'
     pprint(get_field_values(Annotations)[field])
     pprint(get_number_of_classes(Annotations)[field])
-    pprint(create_label_to_id_map(Annotations)[field])
-    map = create_label_to_id_map(Annotations)[field]['label_to_id']
-    print(labels_to_bits(['giunzione', 'medio'], map))
-    map = create_label_to_id_map(Annotations)[field]['id_to_label']
-    print(map)
-    print(bits_to_labels([0, 1, 0, 1], map))
+    pprint(get_optional_regression_fields(Annotations))
+
