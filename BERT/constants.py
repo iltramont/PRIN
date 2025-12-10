@@ -110,3 +110,8 @@ class AnnotatedReport(BaseModel):
         use_enum_values=True,
         validate_assignment=True,
     )
+    
+    
+if __name__ == "__main__":
+    print(len(Annotations.__pydantic_fields__.keys()))
+    print(len(Annotations.model_fields.keys()))
