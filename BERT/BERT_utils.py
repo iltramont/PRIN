@@ -142,13 +142,3 @@ def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str
             result.append(id_to_label_map[i])
     return result
 
-        
-if __name__ == "__main__":
-    from constants import Annotations
-    from pprint import pprint
-
-    field = 'posizione'
-    pprint(get_field_values(Annotations)[field])
-    pprint(get_number_of_classes(Annotations)[field])
-    pprint(get_optional_regression_fields(Annotations))
-
