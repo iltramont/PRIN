@@ -19,15 +19,13 @@ class ReportExtractor(nn.Module):
         self.use_pooler_output = use_pooler_output
         self.dropout_rate = dropout_rate
         self.regression_fields = get_regression_fields(annotations_model)
-        self.optional_regression_fields = get_optional_regression_fields(annotations_model)
         self.multiple_choice_fields = get_multiple_choice_fields(annotations_model)
         self.classification_fields = get_classification_fields(annotations_model)
+        self.num_classes = get_number_of_classes(annotations_model)
         # Layers
         self.encoder = AutoModel.from_pretrained(checkpoint)  # Encoder base model (like BERT)
         self.dropout = nn.Dropout(dropout_rate)  # Dropout layer to reduce overfitting
         
-        # Get number of classes for each classification and multiple choice field
-        num_classes = get_number_of_classes(annotations_model)
         # Get embedding length
         hidden = self.encoder.config.hidden_size
 
@@ -37,9 +35,9 @@ class ReportExtractor(nn.Module):
             if field in self.regression_fields:
                 n_classes = 1
             elif field in self.multiple_choice_fields:
-                n_classes = num_classes[field]
+                n_classes = self.num_classes[field]
             else:
-                n_classes = num_classes[field]
+                n_classes = self.num_classes[field]
                 if n_classes < 3:
                     n_classes = 1
             self.heads[field] = nn.Linear(hidden, n_classes)

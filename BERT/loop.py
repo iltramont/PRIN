@@ -8,14 +8,21 @@ from tqdm import tqdm
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
 
 
-def get_loss(field, prediction, target, regression_fields, classification_fields, multiple_choice_fields, optional_regression_fields):
+def get_loss(field, prediction, target,
+             regression_fields: list[str],
+             classification_fields: list[str],
+             multiple_choice_fields: list[str],
+             num_classes: dict[str, int]):
     """Seleziona la loss corretta in base al tipo di campo."""
     if field in regression_fields:
-        return torch.nn.functional.mse_loss(prediction.squeeze(-1), target.float())
-    elif field in optional_regression_fields:
-        return torch.nn.functional.binary_cross_entropy_with_logits(prediction, target.float())        
+        return torch.nn.functional.mse_loss(prediction, target.float())
     elif field in classification_fields:
-        return torch.nn.functional.cross_entropy(prediction, target.long())
+        if num_classes[field] <= 2:
+            # Binary classification
+            return torch.nn.functional.binary_cross_entropy_with_logits(prediction, target.float())
+        else:
+            # Multi-class classification
+            return torch.nn.functional.cross_entropy(prediction, target.long())
     elif field in multiple_choice_fields:
         return torch.nn.functional.binary_cross_entropy_with_logits(prediction, target.float())
     return None
@@ -33,8 +40,6 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
                                                     {f: [] for f in model.classification_fields})
     regression_preds, regression_targets = ({f: [] for f in model.regression_fields},
                                             {f: [] for f in model.regression_fields})
-    optional_regression_preds, optional_regression_targets = ({f: [] for f in model.optional_regression_fields},
-                                                              {f: [] for f in model.optional_regression_fields})
     multilabel_preds, multilabel_targets = ({f: [] for f in model.multiple_choice_fields},
                                             {f: [] for f in model.multiple_choice_fields})
 
@@ -55,7 +60,7 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
                     model.regression_fields,
                     model.classification_fields,
                     model.multiple_choice_fields,
-                    model.optional_regression_fields
+                    model.num_classes
                 )
                 if field_loss is not None:
                     losses.append(field_loss)
@@ -64,16 +69,13 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
                 if field in model.regression_fields:
                     regression_preds[field].extend(prediction.squeeze(-1).cpu().numpy())
                     regression_targets[field].extend(target.cpu().numpy())
-                    
-                # Regressione opzionale
-                elif field in model.optional_regression_fields:
-                    preds = (torch.sigmoid(prediction) > 0.5).int()
-                    optional_regression_preds[field].extend(preds.cpu().numpy())
-                    optional_regression_targets[field].extend(target.cpu().numpy())
 
                 # Classificazione
                 elif field in model.classification_fields:
-                    preds = prediction.argmax(dim=-1)
+                    if model.num_classes[field] <= 2:
+                        preds = (torch.sigmoid(prediction) > 0.5).int().squeeze(-1)
+                    else:
+                        preds = prediction.argmax(dim=-1)
                     classification_preds[field].extend(preds.cpu().numpy())
                     classification_targets[field].extend(target.cpu().numpy())
 
@@ -98,12 +100,6 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
             if verbose > 1:
                 print(f"Regression {field}: MAE={mae:.4f}, R²={r2:.4f}")
         
-        # Regressione opzionale
-        for field in optional_regression_preds:
-            acc = accuracy_score(optional_regression_targets[field], optional_regression_preds[field])
-            if verbose > 1:
-                print(f"Optional Regression {field}: Accuracy={acc:.2%}")
-
         # Classificazione
         for field in classification_preds:
             acc = accuracy_score(classification_targets[field], classification_preds[field])
@@ -157,7 +153,7 @@ def train(model, dataset_train: Dataset, epochs: int, batch_size: int, lr: float
                     model.regression_fields,
                     model.classification_fields,
                     model.multiple_choice_fields,
-                    model.optional_regression_fields
+                    model.num_classes
                 )
                 if field_loss is not None:
                     losses.append(field_loss)
