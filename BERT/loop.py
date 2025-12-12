@@ -12,21 +12,19 @@ def get_loss(field, prediction, target,
              regression_fields: list[str],
              classification_fields: list[str],
              multiple_choice_fields: list[str],
-             num_classes: dict[str, int]):
-    """Seleziona la loss corretta in base al tipo di campo."""
+             binary_classification_fields: list[str]):
+    """Select correct loss according to field type"""
     if field in regression_fields:
-        return torch.nn.functional.mse_loss(prediction, target.float())
+        return torch.nn.functional.mse_loss(prediction.squeeze(-1), target.float())
     elif field in classification_fields:
-        if num_classes[field] <= 2:
-            # Binary classification
-            return torch.nn.functional.binary_cross_entropy_with_logits(prediction, target.float())
-        else:
-            # Multi-class classification
-            return torch.nn.functional.cross_entropy(prediction, target.long())
+        return torch.nn.functional.cross_entropy(prediction, target.long())
+    elif field in binary_classification_fields:
+        return torch.nn.functional.binary_cross_entropy_with_logits(prediction.squeeze(-1), target.float())
     elif field in multiple_choice_fields:
         return torch.nn.functional.binary_cross_entropy_with_logits(prediction, target.float())
-    return None
-
+    else:
+        return None
+    
 
 def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
     """Evaluation loop: calcola la loss media e altre metriche"""
@@ -38,6 +36,8 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
     # Contatori per metriche
     classification_preds, classification_targets = ({f: [] for f in model.classification_fields},
                                                     {f: [] for f in model.classification_fields})
+    binary_classification_preds, binary_classification_targets = ({f: [] for f in model.binary_classification_fields},
+                                                                  {f: [] for f in model.binary_classification_fields})
     regression_preds, regression_targets = ({f: [] for f in model.regression_fields},
                                             {f: [] for f in model.regression_fields})
     multilabel_preds, multilabel_targets = ({f: [] for f in model.multiple_choice_fields},
@@ -60,8 +60,8 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
                     model.regression_fields,
                     model.classification_fields,
                     model.multiple_choice_fields,
-                    model.num_classes
-                )
+                    model.binary_classification_fields
+                    )
                 if field_loss is not None:
                     losses.append(field_loss)
 
@@ -69,17 +69,17 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
                 if field in model.regression_fields:
                     regression_preds[field].extend(prediction.squeeze(-1).cpu().numpy())
                     regression_targets[field].extend(target.cpu().numpy())
-
                 # Classificazione
                 elif field in model.classification_fields:
-                    if model.num_classes[field] <= 2:
-                        preds = (torch.sigmoid(prediction) > 0.5).int().squeeze(-1)
-                    else:
-                        preds = prediction.argmax(dim=-1)
+                    preds = prediction.argmax(dim=-1)
                     classification_preds[field].extend(preds.cpu().numpy())
                     classification_targets[field].extend(target.cpu().numpy())
-
-                # Multilabel / multiple choice
+                # Classificazione binaria
+                elif field in model.binary_classification_fields:
+                    preds = (torch.sigmoid(prediction) > 0.5).int().squeeze(-1)
+                    binary_classification_preds[field].extend(preds.cpu().numpy())
+                    binary_classification_targets[field].extend(target.cpu().numpy())
+                # Multiple choice
                 elif field in model.multiple_choice_fields:
                     preds = (torch.sigmoid(prediction) > 0.5).int()
                     multilabel_preds[field].extend(preds.cpu().numpy())
@@ -91,6 +91,7 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
         # Loss
         print(f"Validation loss: {total_loss / len(dataloader_eval):.4f}")
 
+        # Metriche
         # Regressione
         for field in regression_preds:
             target = regression_targets[field]
@@ -99,13 +100,16 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
             r2 = r2_score(target, preds)
             if verbose > 1:
                 print(f"Regression {field}: MAE={mae:.4f}, R²={r2:.4f}")
-        
         # Classificazione
         for field in classification_preds:
             acc = accuracy_score(classification_targets[field], classification_preds[field])
             if verbose > 1:
                 print(f"Accuracy {field}: {acc:.2%}")
-
+        # Classificazione binaria
+        for field in binary_classification_preds:
+            acc = accuracy_score(binary_classification_targets[field], binary_classification_preds[field])
+            if verbose > 1:
+                print(f"Accuracy {field}: {acc:.2%}")
         # Multilabel / multiple choice
         for field in multilabel_preds:
             f1 = f1_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
@@ -153,7 +157,7 @@ def train(model, dataset_train: Dataset, epochs: int, batch_size: int, lr: float
                     model.regression_fields,
                     model.classification_fields,
                     model.multiple_choice_fields,
-                    model.num_classes
+                    model.binary_classification_fields
                 )
                 if field_loss is not None:
                     losses.append(field_loss)

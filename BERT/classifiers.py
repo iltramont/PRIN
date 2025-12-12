@@ -2,7 +2,12 @@ import torch
 import torch.nn as nn
 from transformers import AutoModel
 from BERT_utils import get_number_of_classes
-from BERT_utils import get_regression_fields, get_multiple_choice_fields, get_classification_fields, get_optional_regression_fields
+from BERT_utils import (get_regression_fields,
+                        get_multiple_choice_fields,
+                        get_classification_fields,
+                        get_optional_regression_fields,
+                        get_binary_classification_fields
+                    )
 from pydantic import BaseModel
 from constants import Annotations
 
@@ -20,6 +25,8 @@ class ReportExtractor(nn.Module):
         self.dropout_rate = dropout_rate
         self.regression_fields = get_regression_fields(annotations_model)
         self.multiple_choice_fields = get_multiple_choice_fields(annotations_model)
+        self.binary_classification_fields = get_binary_classification_fields(annotations_model)
+        self.optional_regression_fields = get_optional_regression_fields(annotations_model)
         self.classification_fields = get_classification_fields(annotations_model)
         self.num_classes = get_number_of_classes(annotations_model)
         # Layers
@@ -29,18 +36,22 @@ class ReportExtractor(nn.Module):
         # Get embedding length
         hidden = self.encoder.config.hidden_size
 
-        # Classification heads
+        # Heads
         self.heads = nn.ModuleDict()
-        for field in (self.regression_fields + self.classification_fields + self.multiple_choice_fields):
-            if field in self.regression_fields:
-                n_classes = 1
-            elif field in self.multiple_choice_fields:
-                n_classes = self.num_classes[field]
-            else:
-                n_classes = self.num_classes[field]
-                if n_classes < 3:
-                    n_classes = 1
+        # Regression (apply ReLU to ensure non-negative outputs)
+        for field in self.regression_fields:
+            self.heads[field] = nn.Linear(hidden, 1)
+        # Binary classification (apply sigmoid for inference)
+        for field in self.binary_classification_fields:
+            self.heads[field] = nn.Linear(hidden, 1)
+        # Multi-class classification (apply softmax for inference)
+        for field in self.classification_fields:
+            n_classes = self.num_classes[field]
             self.heads[field] = nn.Linear(hidden, n_classes)
+        # Apply (sigmoid for inference)
+        for field in self.multiple_choice_fields:
+            n_classes = self.num_classes[field]
+            self.heads[field] = nn.Linear(hidden, n_classes) 
 
     def forward(self, input_ids, attention_mask) -> dict[str, torch.Tensor]:
         """

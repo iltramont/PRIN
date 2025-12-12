@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict
 from enum import Enum
-from typing import Optional, List, Union, get_type_hints, get_origin, get_args
+from typing import Optional, List
 
 
 class Morfologia(str, Enum):

@@ -52,15 +52,29 @@ def get_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
             result.append(name)
     return result
 
+def get_binary_classification_fields(model: type[BaseModel]) -> list[str]:
+    """
+    Restituisce i campi di classificazione binaria (due classi).
+    """
+    regression_fields = get_regression_fields(model)
+    multiple_choice_fields = get_multiple_choice_fields(model)
+    num_classes = get_number_of_classes(model)
+    binary_fields = []
+    for name in model.model_fields.keys():
+        if (name not in regression_fields) and (name not in multiple_choice_fields) and (num_classes[name] == 2):
+            binary_fields.append(name)
+    return binary_fields
+
 def get_classification_fields(model: type[BaseModel]) -> list[str]:
     """
     Restituisce i campi di classificazione (non numerici e non multi-scelta).
     """
     regression_fields = get_regression_fields(model)
     multiple_choice_fields = get_multiple_choice_fields(model)
+    num_classes = get_number_of_classes(model)
     classification_fields = []
     for name in model.model_fields.keys():
-        if name not in regression_fields and name not in multiple_choice_fields:
+        if (name not in regression_fields) and (name not in multiple_choice_fields) and (num_classes[name] > 2):
             classification_fields.append(name)
     return classification_fields
 
@@ -141,4 +155,3 @@ def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str
         if bit == 1:
             result.append(id_to_label_map[i])
     return result
-
