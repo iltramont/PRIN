@@ -15,10 +15,13 @@ from datasets import Dataset, DatasetDict
 import loop
 from constants import AnnotatedReport, Annotations
 from classifiers import ReportExtractor
-from BERT_utils import create_label_to_id_map, labels_to_bits, NAN_VALUE, get_multiple_choice_fields
+from BERT_utils import create_label_to_id_map, labels_to_bits, NAN_VALUE, get_multiple_choice_fields,  get_optional_regression_fields
 
 # Set base directory
 base_dir = Path(__file__).parent.parent
+
+# Set plotting style
+plt.style.use('ggplot')
 
 # Set device
 print(f'{torch.cuda.is_available() = }')  # True se la GPU è disponibile
@@ -39,7 +42,7 @@ VALIDATION_FILE_NAME = "validation_split.csv"
 CHECKPOINT = "bert-base-multilingual-cased"
 ONLY_HEADS = True
 # Training parameters
-N_EPOCHS = 3
+N_EPOCHS = 5
 BATCH_SIZE = 4
 LEARNING_RATE = 2e-3
 
@@ -66,6 +69,12 @@ train_data, validation_data = data['train'], data['validation']
 
 print(f"{len(train_data) = }")
 print(f"{len(validation_data) = }")
+
+# Creiamo colonne per flag quando i campi numerici sono mancanti
+for split, df in data.items():
+    for col in get_optional_regression_fields(Annotations):
+        new_name = f'{col}_is_nan'
+        df[new_name] = df[col].isna()
 
 annotated_reports: dict[str, list[AnnotatedReport]] = {split: [] for split in file_names.keys()}
 mc_fields = get_multiple_choice_fields(Annotations)
@@ -129,6 +138,15 @@ for f in model.classification_fields:
             label = getattr(r.report_data, f)
             if label is None:
                 label = NAN_VALUE
+            id = label_to_id_map[f]['label_to_id'][label]
+            target.append(id)
+        dataset[split] = dataset[split].add_column(f, target)
+# Binary classification fields
+for f in model.binary_classification_fields:
+    for split in ('train', 'validation'):
+        target: list[int] = []
+        for r in annotated_reports[split]:
+            label = getattr(r.report_data, f)
             id = label_to_id_map[f]['label_to_id'][label]
             target.append(id)
         dataset[split] = dataset[split].add_column(f, target)
