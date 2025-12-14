@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import random
 
 from ast import literal_eval
 from dotenv import load_dotenv
@@ -16,6 +17,31 @@ import loop
 from constants import AnnotatedReport, Annotations
 from classifiers import ReportExtractor
 from BERT_utils import create_label_to_id_map, labels_to_bits, NAN_VALUE, get_multiple_choice_fields,  get_optional_regression_fields
+from BERT_utils import SEED
+
+# Ripetibilità
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+# Parameters
+TRAIN_FILE_NAME = "train_split.csv"
+VALIDATION_FILE_NAME = "validation_split.csv"
+# Model parameters
+CHECKPOINT = "bert-base-multilingual-cased"
+DROPOUT_RATE = 0.2
+# Training parameters
+N_EPOCHS = 50
+BATCH_SIZE = 4
+BATCH_SIZE_VALIDATION = 1
+LEARNING_RATE = 2e-3
+ONLY_HEADS = True
+
 
 # Set base directory
 base_dir = Path(__file__).parent.parent
@@ -36,15 +62,7 @@ load_dotenv()  # Load environment variables from .env file
 hf_api_key = os.getenv("HF_TOKEN")
 login(token=hf_api_key)
 
-# Parameters
-TRAIN_FILE_NAME = "train_split.csv"
-VALIDATION_FILE_NAME = "validation_split.csv"
-CHECKPOINT = "bert-base-multilingual-cased"
-ONLY_HEADS = True
-# Training parameters
-N_EPOCHS = 5
-BATCH_SIZE = 4
-LEARNING_RATE = 2e-3
+
 
 # Functions
 def create_hugging_face_dataset(annotated_reports: list[AnnotatedReport]) -> Dataset:
@@ -93,7 +111,7 @@ for split in data:
 
 
 # Load model and tokenizer
-model = ReportExtractor().to(device)
+model = ReportExtractor(dropout_rate=DROPOUT_RATE).to(device)
 tokenizer = AutoTokenizer.from_pretrained(model.checkpoint)
 
 # Check the maximum number of tokens for each report
@@ -120,7 +138,7 @@ dataset = DatasetDict({
 })
 
 def tokenize_function(examples):
-    return tokenizer(examples['text'], padding="max_length", max_length=model.encoder.config.max_position_embeddings)
+    return tokenizer(examples['text'], padding="longest", max_length=model.encoder.config.max_position_embeddings)
 
 dataset = dataset.map(tokenize_function, batched=True)
 dataset = dataset.remove_columns(["token_type_ids", "text"])
@@ -191,18 +209,42 @@ for head in model.heads.values():
     out_feat += head.out_features
 print(f'Extraction heads parameters: {model.encoder.config.hidden_size * out_feat + out_feat}')
 
+wandb_dict = {
+    'entity': "luca-tramonti-PRIN",
+    'project': "PRIN",
+    'config':{
+        "learning_rate": LEARNING_RATE,
+        "architecture": f'{CHECKPOINT} + extraction heads',
+        "dataset": "Only Guido reports",
+        "epochs": N_EPOCHS,
+        "dropout": DROPOUT_RATE,
+        "train_batch_size": BATCH_SIZE,
+        "validation_batch_size": BATCH_SIZE_VALIDATION,
+        "train_only_heads": ONLY_HEADS,
+    }
+}
+
 # Start training
-loss = loop.train(
+tracking = loop.train(
     model,
     dataset_train=dataset['train'],
     dataset_validation=dataset['validation'],
     epochs=N_EPOCHS,
     batch_size=BATCH_SIZE,
     lr=LEARNING_RATE,
-    verbose=1
+    verbose=1,
+    batch_size_val=BATCH_SIZE_VALIDATION,
+    wandb_dict=wandb_dict
+    #wandb_dict=None
 )
 
-sns.lineplot(data=pd.DataFrame(loss))
+df_1 = pd.DataFrame.from_records(tracking['train'])
+df_2 = pd.DataFrame.from_records(tracking['validation'])
+df_1['split'] = 'train'
+df_2['split'] = 'validation'
+df = pd.concat([df_1, df_2])
+sns.lineplot(data=df, x=df.index, y='epoch', hue='split')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
+
 plt.show()

@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args, Optional
 
 NAN_VALUE = 'NaN'
-
+SEED = 2026
 
 def get_regression_fields(model: type[BaseModel]) -> list[str]:
     """

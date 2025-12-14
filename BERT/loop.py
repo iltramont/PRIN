@@ -1,127 +1,155 @@
 import torch
 from torch.utils.data import DataLoader
 from torch.optim import Adam, AdamW
+import torch.nn.functional as F
+import wandb
+
 
 from datasets import Dataset
 
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
 
+from BERT.BERT_utils import SEED
 
-def get_loss(field, prediction, target,
-             regression_fields: list[str],
-             classification_fields: list[str],
-             multiple_choice_fields: list[str],
-             binary_classification_fields: list[str]):
-    """Select correct loss according to field type"""
+
+def get_loss(
+    field: str,
+    outputs: dict[str, torch.Tensor],
+    batch: dict[str, torch.Tensor],
+    regression_fields: list[str],
+    classification_fields: list[str],
+    multiple_choice_fields: list[str],
+    binary_classification_fields: list[str],
+    loss_dict: dict[str, list[float]],
+    alpha_nan: float = 1.0,
+) -> None | torch.Tensor:
+    """
+    Loss coerente con il concetto:
+    - {field}_is_nan == True → informazione NON estraibile dal testo
+    - la loss del valore/classe è calcolata SOLO se estraibile
+    """
+    pred = outputs[field]
+    device = pred.device
+    # ===========
+    # REGRESSIONE
+    # ===========
     if field in regression_fields:
-        return torch.nn.functional.mse_loss(prediction.squeeze(-1), target.float())
+        target = batch[field].float().to(device)
+        pred_value = pred.squeeze(-1)
+        nan_field = f"{field}_is_nan"
+        if nan_field in outputs:
+            t_nan = batch[nan_field].float().to(device)
+            pred_nan = outputs[nan_field].squeeze(-1)
+            # Loss estraibilità
+            loss_nan = alpha_nan * F.binary_cross_entropy_with_logits(pred_nan, t_nan)
+            loss_dict[nan_field].append(loss_nan.item())
+            # Loss valore SOLO se estraibile
+            mask = (t_nan == 0)
+            if mask.any():
+                # calcola MSE loss solo se presente almeno un valore non mascherato
+                loss_value = F.mse_loss(pred_value[mask], target[mask])
+                loss_dict[field].append(loss_value.item())
+                return loss_nan + loss_value
+            else:
+                return loss_nan
+        else:
+            # Se il campo non può essere NAN, calcola direttamente MSE loss
+            return F.mse_loss(pred_value, target)
+    # ===========================
+    # CLASSIFICAZIONE MULTICLASSE
+    # ===========================
     elif field in classification_fields:
-        return torch.nn.functional.cross_entropy(prediction, target.long())
+        target = batch[field].long().to(device)
+        loss = F.cross_entropy(pred, target)
+        loss_dict[field].append(loss.item())
+        return loss
+    # =======================
+    # CLASSIFICAZIONE BINARIA
+    # =======================
     elif field in binary_classification_fields:
-        return torch.nn.functional.binary_cross_entropy_with_logits(prediction.squeeze(-1), target.float())
+        target = batch[field].float().to(device)
+        loss = F.binary_cross_entropy_with_logits(pred.squeeze(-1), target)
+        loss_dict[field].append(loss.item())
+        return loss
+    # =============================
+    # MULTI-LABEL / MULTIPLE CHOICE
+    # =============================
     elif field in multiple_choice_fields:
-        return torch.nn.functional.binary_cross_entropy_with_logits(prediction, target.float())
+        target = batch[field].float().to(device)
+        loss = F.binary_cross_entropy_with_logits(pred, target)
+        loss_dict[field].append(loss.item())
+        return loss
+    # ==================
+    # Campo non presente
+    # ==================
     else:
+        print('LOSS NULLA!!!!')
         return None
     
 
 def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
     """Evaluation loop: calcola la loss media e altre metriche"""
-    dataloader_eval = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    dataloader_eval = DataLoader(dataset, batch_size=batch_size, shuffle=False, generator=torch.Generator().manual_seed(SEED))
     device = next(model.parameters()).device
     model.eval()
 
-    total_loss = 0.0
-    # Contatori per metriche
-    classification_preds, classification_targets = ({f: [] for f in model.classification_fields},
-                                                    {f: [] for f in model.classification_fields})
-    binary_classification_preds, binary_classification_targets = ({f: [] for f in model.binary_classification_fields},
-                                                                  {f: [] for f in model.binary_classification_fields})
-    regression_preds, regression_targets = ({f: [] for f in model.regression_fields},
-                                            {f: [] for f in model.regression_fields})
-    multilabel_preds, multilabel_targets = ({f: [] for f in model.multiple_choice_fields},
-                                            {f: [] for f in model.multiple_choice_fields})
-
-    with torch.no_grad():
+    epoch_loss = 0.0
+    with (torch.no_grad()):
+        count_batch = 0
+        batch_loss_dict = {field: [] for field in model.heads.keys()}
         for batch in dataloader_eval:
-            input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
+            count_batch += 1
+            input_ids = batch['input_ids']
+            attention_mask = batch['attention_mask']
             input_ids = input_ids.to(device)
             attention_mask = attention_mask.to(device)
-
+            # Inference
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
+            # Batch loss
+            # Calcola loss per ogni campo
+            batch_losses: list[torch.Tensor] = []
 
-            losses = []
-            for field, prediction in outputs.items():
-                target = batch[field].to(device)
-                # Loss
+            for field in outputs:
+                # Ignora eventuale chiave "_preds" se presente
+                if field.startswith("_"):
+                    continue
+                if field.endswith('_is_nan'):
+                    continue
                 field_loss = get_loss(
-                    field, prediction, target,
-                    model.regression_fields,
-                    model.classification_fields,
-                    model.multiple_choice_fields,
-                    model.binary_classification_fields
-                    )
+                    field=field,
+                    outputs=outputs,
+                    batch=batch,
+                    regression_fields=model.regression_fields,
+                    classification_fields=model.classification_fields,
+                    multiple_choice_fields=model.multiple_choice_fields,
+                    binary_classification_fields=model.binary_classification_fields,
+                    loss_dict=batch_loss_dict,
+                    alpha_nan=1.0
+                )
                 if field_loss is not None:
-                    losses.append(field_loss)
+                    batch_losses.append(field_loss)
 
-                # Regressione
-                if field in model.regression_fields:
-                    regression_preds[field].extend(prediction.squeeze(-1).cpu().numpy())
-                    regression_targets[field].extend(target.cpu().numpy())
-                # Classificazione
-                elif field in model.classification_fields:
-                    preds = prediction.argmax(dim=-1)
-                    classification_preds[field].extend(preds.cpu().numpy())
-                    classification_targets[field].extend(target.cpu().numpy())
-                # Classificazione binaria
-                elif field in model.binary_classification_fields:
-                    preds = (torch.sigmoid(prediction) > 0.5).int().squeeze(-1)
-                    binary_classification_preds[field].extend(preds.cpu().numpy())
-                    binary_classification_targets[field].extend(target.cpu().numpy())
-                # Multiple choice
-                elif field in model.multiple_choice_fields:
-                    preds = (torch.sigmoid(prediction) > 0.5).int()
-                    multilabel_preds[field].extend(preds.cpu().numpy())
-                    multilabel_targets[field].extend(target.cpu().numpy())      
-            
-            loss = sum(losses) / len(losses)
-            total_loss += loss.item()
-                
-        # Loss
-        print(f"Validation loss: {total_loss / len(dataloader_eval):.4f}")
+            batch_loss = sum(batch_losses) / len(batch_losses)  # media delle loss per ogni campo del batch
+            # Aumenta epoch loss con batch loss
+            epoch_loss += batch_loss.item()
 
-        # Metriche
-        # Regressione
-        for field in regression_preds:
-            target = regression_targets[field]
-            preds = regression_preds[field]
-            mae = mean_absolute_error(target, preds)
-            r2 = r2_score(target, preds)
-            if verbose > 1:
-                print(f"Regression {field}: MAE={mae:.4f}, R²={r2:.4f}")
-        # Classificazione
-        for field in classification_preds:
-            acc = accuracy_score(classification_targets[field], classification_preds[field])
-            if verbose > 1:
-                print(f"Accuracy {field}: {acc:.2%}")
-        # Classificazione binaria
-        for field in binary_classification_preds:
-            acc = accuracy_score(binary_classification_targets[field], binary_classification_preds[field])
-            if verbose > 1:
-                print(f"Accuracy {field}: {acc:.2%}")
-        # Multilabel / multiple choice
-        for field in multilabel_preds:
-            f1 = f1_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
-            precision = precision_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
-            recall = recall_score(multilabel_targets[field], multilabel_preds[field], average="micro", zero_division=0)
-            if verbose > 1:
-                print(f"Multilabel {field}: F1={f1:.4f}, Precision={precision:.4f}, Recall={recall:.4f}")
-    return total_loss / len(dataloader_eval)
+        epoch_loss_dict = {f: sum(l) / count_batch for f, l in batch_loss_dict.items()}
+        epoch_loss_dict['epoch'] = epoch_loss / count_batch  # media delle loss dei batch
+        print(f"Validation loss: {epoch_loss_dict['epoch']:.4f}")
+    return epoch_loss_dict
 
 
-def train(model, dataset_train: Dataset, epochs: int, batch_size: int, lr: float = 2e-5,
-          dataset_validation: Dataset| None =None, batch_size_val: int = 2, verbose: int = 1):
+def train(model,
+          dataset_train: Dataset,
+          epochs: int,
+          batch_size: int,
+          lr: float = 2e-5,
+          dataset_validation: Dataset | None = None,
+          batch_size_val: int = 2,
+          verbose: int = 1,
+          wandb_dict: dict | None = None,
+          ) -> dict[str, list[dict[str, float]]]:
     """
     Training loop generico per ReportExtractor.
     - model: istanza del modello
@@ -130,8 +158,22 @@ def train(model, dataset_train: Dataset, epochs: int, batch_size: int, lr: float
     - batch_size: dimensione batch
     - lr: learning rate
     """
+
+    if wandb_dict is not None:
+        wandb.login()
+        run = wandb.init(
+            # Set the wandb entity where your project will be logged (generally your team name).
+            entity=wandb_dict['entity'],
+            # Set the wandb project where this run will be logged.
+            project=wandb_dict['project'],
+            # Track hyperparameters and run metadata.
+            config=wandb_dict['config']
+        )
+    else:
+        run = None
+
     device = next(model.parameters()).device
-    dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True)
+    dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, generator=torch.Generator().manual_seed(SEED))
     #optimizer = Adam(model.parameters(), lr=lr)
     optimizer = AdamW(model.parameters(), lr=lr, weight_decay=0.01)
 
@@ -139,42 +181,68 @@ def train(model, dataset_train: Dataset, epochs: int, batch_size: int, lr: float
     
     for epoch in range(epochs):
         model.train()
-        total_loss = 0.0
+        epoch_loss = 0.0
+        count_batch = 0
+        batch_loss_dict = {field: [] for field in model.heads.keys()}
         for batch in tqdm(dataloader_train):
-            input_ids, attention_mask = batch['input_ids'], batch['attention_mask']
+            count_batch += 1
+            input_ids = batch['input_ids']
+            attention_mask = batch['attention_mask']
             input_ids = input_ids.to(device)
             attention_mask = attention_mask.to(device)
 
-            # Forward
+            # Inference
             outputs = model(input_ids=input_ids, attention_mask=attention_mask)
 
+            # Batch loss
             # Calcola loss per ogni campo
-            losses = []
-            for field, prediction in outputs.items():
-                target = batch[field].to(device)
+            batch_losses: list[torch.Tensor] = []
+            for field in outputs:
+                # Ignora eventuale chiave "_preds" se presente
+                if field.startswith("_"):
+                    continue
+                if field.endswith('_is_nan'):
+                    continue
                 field_loss = get_loss(
-                    field, prediction, target,
-                    model.regression_fields,
-                    model.classification_fields,
-                    model.multiple_choice_fields,
-                    model.binary_classification_fields
+                    field=field,
+                    outputs=outputs,
+                    batch=batch,
+                    regression_fields=model.regression_fields,
+                    classification_fields=model.classification_fields,
+                    multiple_choice_fields=model.multiple_choice_fields,
+                    binary_classification_fields=model.binary_classification_fields,
+                    loss_dict=batch_loss_dict,
+                    alpha_nan=1.0
                 )
                 if field_loss is not None:
-                    losses.append(field_loss)
-            loss = sum(losses) / len(losses)
+                    batch_losses.append(field_loss)
+            batch_loss = sum(batch_losses) / len(batch_losses)
 
-            # Backprop
+            # Backpropagation
             optimizer.zero_grad()
-            loss.backward()
+            batch_loss.backward()
             #torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
-            total_loss += loss.item()
-        
-        loss_lists['train'].append(total_loss/len(dataloader_train))
-        print(f"Epoch {epoch+1}/{epochs} - Training loss: {total_loss/len(dataloader_train):.4f}")
+            # Aumenta epoch loss con batch loss
+            epoch_loss += batch_loss.item()
+
+        epoch_loss_dict = {f: sum(l) / count_batch for f, l in batch_loss_dict.items()}
+        epoch_loss_dict['epoch'] = epoch_loss / count_batch
+
+        if wandb_dict is not None:
+            log_dict = {f"train_loss_{f}": l for f, l in epoch_loss_dict.items() if f != 'epoch'}
+            log_dict['train_loss'] = epoch_loss_dict['epoch']
+            run.log(log_dict)
+        loss_lists['train'].append(epoch_loss_dict)
+        print(f"Epoch {epoch+1}/{epochs} - Training loss: {epoch_loss_dict['epoch']:.4f}")
         if dataset_validation is not None:
-            eval_loss = evaluate(model, dataset_validation, batch_size_val, verbose)
-            loss_lists['validation'].append(eval_loss)
-            
+            eval_loss_dict = evaluate(model, dataset_validation, batch_size_val, verbose)
+            if wandb_dict is not None:
+                log_dict = {f"eval_loss_{f}": l for f, l in eval_loss_dict.items() if f != 'epoch'}
+                log_dict['eval_loss'] = eval_loss_dict['epoch']
+                run.log(log_dict)
+            loss_lists['validation'].append(eval_loss_dict)
+    if wandb_dict is not None:
+        run.finish()
     return loss_lists

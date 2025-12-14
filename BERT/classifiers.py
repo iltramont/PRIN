@@ -73,4 +73,5 @@ class ReportExtractor(nn.Module):
             if field in self.regression_fields:
                 out = nn.functional.relu(out)
             outputs[field] = out
+        # outputs["_preds"] = outputs
         return outputs
