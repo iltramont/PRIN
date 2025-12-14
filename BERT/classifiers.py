@@ -48,7 +48,7 @@ class ReportExtractor(nn.Module):
         for field in self.classification_fields:
             n_classes = self.num_classes[field]
             self.heads[field] = nn.Linear(hidden, n_classes)
-        # Apply (sigmoid for inference)
+        # (apply sigmoid for inference)
         for field in self.multiple_choice_fields:
             n_classes = self.num_classes[field]
             self.heads[field] = nn.Linear(hidden, n_classes) 
@@ -70,8 +70,8 @@ class ReportExtractor(nn.Module):
         outputs = dict()
         for field, head in self.heads.items():
             out = head(embeddings)
-            if field in self.regression_fields:
-                out = nn.functional.relu(out)
+            #if field in self.regression_fields:
+            #    out = nn.functional.relu(out)
             outputs[field] = out
         # outputs["_preds"] = outputs
         return outputs

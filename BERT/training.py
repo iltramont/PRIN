@@ -37,8 +37,8 @@ CHECKPOINT = "bert-base-multilingual-cased"
 DROPOUT_RATE = 0.2
 # Training parameters
 N_EPOCHS = 50
-BATCH_SIZE = 4
-BATCH_SIZE_VALIDATION = 1
+BATCH_SIZE = 8
+BATCH_SIZE_VALIDATION = 4
 LEARNING_RATE = 2e-3
 ONLY_HEADS = True
 
@@ -169,6 +169,17 @@ for f in model.binary_classification_fields:
             target.append(id)
         dataset[split] = dataset[split].add_column(f, target)
 # Regression fields
+# Mean and std for normalization
+regression_stats = {}
+for f in model.regression_fields:
+    values = []
+    for r in annotated_reports['train']:
+        v = getattr(r.report_data, f)
+        if v is not None:
+            values.append(float(v))
+    mu = np.mean(values)
+    std = np.std(values)
+    regression_stats[f] = (mu, std)
 for f in model.regression_fields:
     for split in ('train', 'validation'):
         target: list[float] = []
@@ -176,7 +187,10 @@ for f in model.regression_fields:
             value = getattr(r.report_data, f)
             if value is None:
                 value = 0
-            target.append(float(value))
+            mu = regression_stats[f][0]
+            std = regression_stats[f][1]
+            value = (float(value) - mu) / std
+            target.append(value)
         dataset[split] = dataset[split].add_column(f, target)
 # Multiple choice fields
 for f in model.multiple_choice_fields:

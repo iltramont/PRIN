@@ -134,7 +134,12 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
             # Aumenta epoch loss con batch loss
             epoch_loss += batch_loss.item()
 
-        epoch_loss_dict = {f: sum(l) / count_batch for f, l in batch_loss_dict.items()}
+        epoch_loss_dict = dict()
+        for f, l in batch_loss_dict.items():
+            if len(l) > 0:
+                epoch_loss_dict[f] = sum(l) / len(l)
+            else:
+                epoch_loss_dict[f] = 0.0
         epoch_loss_dict['epoch'] = epoch_loss / count_batch  # media delle loss dei batch
         print(f"Validation loss: {epoch_loss_dict['epoch']:.4f}")
     return epoch_loss_dict
@@ -227,22 +232,29 @@ def train(model,
             # Aumenta epoch loss con batch loss
             epoch_loss += batch_loss.item()
 
-        epoch_loss_dict = {f: sum(l) / count_batch for f, l in batch_loss_dict.items()}
+        epoch_loss_dict = dict()
+        for f, l in batch_loss_dict.items():
+            if len(l) > 0:
+                epoch_loss_dict[f] = sum(l) / len(l)
+            else:
+                epoch_loss_dict[f] = 0.0
         epoch_loss_dict['epoch'] = epoch_loss / count_batch
 
         if wandb_dict is not None:
             log_dict = {f"train_loss_{f}": l for f, l in epoch_loss_dict.items() if f != 'epoch'}
             log_dict['train_loss'] = epoch_loss_dict['epoch']
-            run.log(log_dict)
         loss_lists['train'].append(epoch_loss_dict)
         print(f"Epoch {epoch+1}/{epochs} - Training loss: {epoch_loss_dict['epoch']:.4f}")
         if dataset_validation is not None:
             eval_loss_dict = evaluate(model, dataset_validation, batch_size_val, verbose)
             if wandb_dict is not None:
-                log_dict = {f"eval_loss_{f}": l for f, l in eval_loss_dict.items() if f != 'epoch'}
+                for f, l in eval_loss_dict.items():
+                    if f != 'epoch':
+                        log_dict[f"eval_loss_{f}"] = l
                 log_dict['eval_loss'] = eval_loss_dict['epoch']
-                run.log(log_dict)
             loss_lists['validation'].append(eval_loss_dict)
+        if wandb_dict is not None:
+            run.log(log_dict)
     if wandb_dict is not None:
         run.finish()
     return loss_lists
