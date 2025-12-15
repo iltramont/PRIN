@@ -172,3 +172,5 @@ cython_debug/
 
 # Non trcciare file con possibili dati sensibili
 data/confidential/
+
+wandb

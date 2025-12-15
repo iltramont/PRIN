@@ -10,7 +10,7 @@ from datasets import Dataset
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
 
-from BERT.BERT_utils import SEED
+from BERT_utils import SEED
 
 
 def get_loss(
@@ -95,7 +95,7 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
     model.eval()
 
     epoch_loss = 0.0
-    with (torch.no_grad()):
+    with torch.no_grad():
         count_batch = 0
         batch_loss_dict = {field: [] for field in model.heads.keys()}
         for batch in dataloader_eval:

@@ -16,12 +16,14 @@ class ReportExtractor(nn.Module):
     def __init__(self, checkpoint="bert-base-multilingual-cased",
                  annotations_model: type[BaseModel] = Annotations,
                  use_pooler_output: bool = False,
+                 add_common_layer: bool = True,
                  dropout_rate: float = 0.2):
         super().__init__()
         # Model attributes
         self.checkpoint = checkpoint
         self.annotations_model = annotations_model
         self.use_pooler_output = use_pooler_output
+        self.add_common_layer = add_common_layer
         self.dropout_rate = dropout_rate
         self.regression_fields = get_regression_fields(annotations_model)
         self.multiple_choice_fields = get_multiple_choice_fields(annotations_model)
@@ -31,10 +33,15 @@ class ReportExtractor(nn.Module):
         self.num_classes = get_number_of_classes(annotations_model)
         # Layers
         self.encoder = AutoModel.from_pretrained(checkpoint)  # Encoder base model (like BERT)
-        self.dropout = nn.Dropout(dropout_rate)  # Dropout layer to reduce overfitting
-        
         # Get embedding length
         hidden = self.encoder.config.hidden_size
+        if add_common_layer:
+            self.common_layer = nn.Sequential(
+                nn.Linear(hidden, hidden),
+                nn.LayerNorm(hidden),
+                nn.SiLU()
+            )
+        self.dropout = nn.Dropout(dropout_rate)  # Dropout layer to reduce overfitting
 
         # Heads
         self.heads = nn.ModuleDict()
@@ -64,6 +71,9 @@ class ReportExtractor(nn.Module):
             embeddings = embeddings.pooler_output
         else:
             embeddings = embeddings.last_hidden_state[:, 0, :]
+        # Common layer
+        if self.add_common_layer:
+            embeddings = self.common_layer(embeddings)
         # Apply dropout
         embeddings = self.dropout(embeddings)
         # Apply each head to get predictions for each field

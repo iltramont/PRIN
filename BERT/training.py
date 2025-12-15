@@ -37,9 +37,10 @@ CHECKPOINT = "bert-base-multilingual-cased"
 DROPOUT_RATE = 0.2
 # Training parameters
 N_EPOCHS = 50
-BATCH_SIZE = 8
+BATCH_SIZE = 4
 BATCH_SIZE_VALIDATION = 4
-LEARNING_RATE = 2e-3
+LEARNING_RATE = 1e-5
+ADD_COMMON_LAYER = False
 ONLY_HEADS = True
 
 
@@ -111,7 +112,7 @@ for split in data:
 
 
 # Load model and tokenizer
-model = ReportExtractor(dropout_rate=DROPOUT_RATE).to(device)
+model = ReportExtractor(dropout_rate=DROPOUT_RATE, add_common_layer=ADD_COMMON_LAYER).to(device)
 tokenizer = AutoTokenizer.from_pretrained(model.checkpoint)
 
 # Check the maximum number of tokens for each report
@@ -234,6 +235,7 @@ wandb_dict = {
         "dropout": DROPOUT_RATE,
         "train_batch_size": BATCH_SIZE,
         "validation_batch_size": BATCH_SIZE_VALIDATION,
+        "add_common_layer": ADD_COMMON_LAYER,
         "train_only_heads": ONLY_HEADS,
     }
 }
