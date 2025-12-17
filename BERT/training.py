@@ -6,115 +6,98 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import random
 
-from ast import literal_eval
 from dotenv import load_dotenv
 from pathlib import Path
 from huggingface_hub import login
 from transformers import AutoTokenizer
-from datasets import Dataset, DatasetDict
+from datasets import DatasetDict
 
 import loop
-from constants import AnnotatedReport, Annotations
+from constants import SEED
 from classifiers import ReportExtractor
-from BERT_utils import create_label_to_id_map, labels_to_bits, NAN_VALUE, get_multiple_choice_fields,  get_optional_regression_fields
-from BERT_utils import SEED
+from BERT_utils import create_label_to_id_map
 
-# Ripetibilità
+from train_utils import (create_hugging_face_dataset,
+                         get_device,
+                         add_nan_flag_to_df,
+                         create_list_of_annotated_reports,
+                         get_normalization_stats,
+                         add_target_columns_to_dataset,
+                         model_parameters_info)
+
+
+#################
+# Reproducibility
+#################
 random.seed(SEED)
 np.random.seed(SEED)
 torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
-
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
+
+############
 # Parameters
+############
+# Data parameters
 TRAIN_FILE_NAME = "train_split.csv"
 VALIDATION_FILE_NAME = "validation_split.csv"
 # Model parameters
 CHECKPOINT = "bert-base-multilingual-cased"
 DROPOUT_RATE = 0.2
+ADD_COMMON_LAYER = False
 # Training parameters
 N_EPOCHS = 50
 BATCH_SIZE = 4
 BATCH_SIZE_VALIDATION = 4
 LEARNING_RATE = 1e-5
-ADD_COMMON_LAYER = False
 ONLY_HEADS = True
 
 
+#######
+# Utils
+#######
 # Set base directory
 base_dir = Path(__file__).parent.parent
-
 # Set plotting style
 plt.style.use('ggplot')
-
 # Set device
-print(f'{torch.cuda.is_available() = }')  # True se la GPU è disponibile
-print(f'{torch.cuda.device_count() = }')  # Numero di GPU disponibili
-if torch.cuda.is_available():
-    print(torch.cuda.get_device_name(0))
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = get_device()
 print(f'{device = }')
-
 # Set the API key for HuggingFace
 load_dotenv()  # Load environment variables from .env file
 hf_api_key = os.getenv("HF_TOKEN")
 login(token=hf_api_key)
 
 
-
-# Functions
-def create_hugging_face_dataset(annotated_reports: list[AnnotatedReport]) -> Dataset:
-    text = [report.report_text for report in annotated_reports]
-    return Dataset.from_dict({'text': text})
-
-
+###########
 # Load data
+###########
 file_names = {
     'train': TRAIN_FILE_NAME,
     'validation': VALIDATION_FILE_NAME,
 }
 paths = {split: base_dir / "data" / file_name
          for split, file_name in file_names.items()}
-
-data = dict()
-for split, path in paths.items():
-    with open(path, "r", encoding="utf-8") as f:
-        data[split] = pd.read_csv(f)
-
+data = {split: pd.read_csv(path) for split, path in paths.items()}
 train_data, validation_data = data['train'], data['validation']
-
+# Log
 print(f"{len(train_data) = }")
 print(f"{len(validation_data) = }")
-
-# Creiamo colonne per flag quando i campi numerici sono mancanti
+# Create nan-flag columns
 for split, df in data.items():
-    for col in get_optional_regression_fields(Annotations):
-        new_name = f'{col}_is_nan'
-        df[new_name] = df[col].isna()
-
-annotated_reports: dict[str, list[AnnotatedReport]] = {split: [] for split in file_names.keys()}
-mc_fields = get_multiple_choice_fields(Annotations)
-for split in data:
-    df = data[split].fillna(NAN_VALUE)
-    for _, row in df.iterrows():
-        annotations_dict = dict()
-        for field in Annotations.model_fields.keys():
-            v = row[field]
-            if v == NAN_VALUE:
-                v = None
-            if field in mc_fields:
-                v = literal_eval(v)
-            annotations_dict[field] = v
-        annotated_reports[split].append(AnnotatedReport(report_text=row['report_text'], report_data=annotations_dict))
+    add_nan_flag_to_df(df)
+# Create lists of Annotated reports
+annotated_reports =  {split: create_list_of_annotated_reports(data[split]) for split in file_names}
 
 
+##########################
 # Load model and tokenizer
+##########################
 model = ReportExtractor(dropout_rate=DROPOUT_RATE, add_common_layer=ADD_COMMON_LAYER).to(device)
 tokenizer = AutoTokenizer.from_pretrained(model.checkpoint)
-
 # Check the maximum number of tokens for each report
 for split in annotated_reports:
     print(f'{split}: {len(annotated_reports[split])} reports')
@@ -132,98 +115,48 @@ for split in annotated_reports:
         annotated_reports[split].pop(i)
     print(f'After deletion: {len(annotated_reports[split])} reports')
 
+
+##############################
 # Create Hugging Face Datasets
+##############################
 dataset = DatasetDict({
     split: create_hugging_face_dataset(annotated_reports[split])
     for split in annotated_reports
 })
-
+# Tokenize text and set format to torch
 def tokenize_function(examples):
     return tokenizer(examples['text'], padding="longest", max_length=model.encoder.config.max_position_embeddings)
-
 dataset = dataset.map(tokenize_function, batched=True)
 dataset = dataset.remove_columns(["token_type_ids", "text"])
 dataset.set_format('torch')
+# Log before adding columns
 print(dataset)
-
 # Add annotation fields to the dataset
 label_to_id_map = create_label_to_id_map(model.annotations_model)
-
-# Classification fields
-for f in model.classification_fields:
-    for split in annotated_reports:
-        target: list[int] = []
-        for r in annotated_reports[split]:
-            label = getattr(r.report_data, f)
-            if label is None:
-                label = NAN_VALUE
-            id = label_to_id_map[f]['label_to_id'][label]
-            target.append(id)
-        dataset[split] = dataset[split].add_column(f, target)
-# Binary classification fields
-for f in model.binary_classification_fields:
-    for split in ('train', 'validation'):
-        target: list[int] = []
-        for r in annotated_reports[split]:
-            label = getattr(r.report_data, f)
-            id = label_to_id_map[f]['label_to_id'][label]
-            target.append(id)
-        dataset[split] = dataset[split].add_column(f, target)
-# Regression fields
-# Mean and std for normalization
-regression_stats = {}
-for f in model.regression_fields:
-    values = []
-    for r in annotated_reports['train']:
-        v = getattr(r.report_data, f)
-        if v is not None:
-            values.append(float(v))
-    mu = np.mean(values)
-    std = np.std(values)
-    regression_stats[f] = (mu, std)
-for f in model.regression_fields:
-    for split in ('train', 'validation'):
-        target: list[float] = []
-        for r in annotated_reports[split]:
-            value = getattr(r.report_data, f)
-            if value is None:
-                value = 0
-            mu = regression_stats[f][0]
-            std = regression_stats[f][1]
-            value = (float(value) - mu) / std
-            target.append(value)
-        dataset[split] = dataset[split].add_column(f, target)
-# Multiple choice fields
-for f in model.multiple_choice_fields:
-    for split in ('train', 'validation'):
-        target: list[list[int]] = []
-        for r in annotated_reports[split]:
-            values = getattr(r.report_data, f)
-            bits = labels_to_bits(values, label_to_id_map[f]['label_to_id'])
-            target.append(bits)
-        dataset[split] = dataset[split].add_column(f, target)       
-        
+normalization_stats = get_normalization_stats(annotated_reports['train'], model.regression_fields)
+for split, reports in annotated_reports.items():
+    dataset[split] = add_target_columns_to_dataset(dataset=dataset[split],
+                                                   annotated_reports=reports,
+                                                   label_to_id_map=label_to_id_map,
+                                                   classification_columns=model.classification_fields,
+                                                   binary_classification_columns=model.binary_classification_fields,
+                                                   multiple_choice_columns=model.multiple_choice_fields,
+                                                   regression_columns=model.regression_fields,
+                                                   normalization_stats=normalization_stats)
+# Log after adding columns
 print(dataset)
 
+
+##########
 # Training
+##########
 # Set trainable parameters
 if ONLY_HEADS:
     for param in model.encoder.parameters():
         param.requires_grad = False
-# Total parameters
-total_params = sum(p.numel() for p in model.parameters())
-
-# Parametri allenabili (quelli con gradiente)
-trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-
-# Print parameters info
-print(f"Total parameters: {total_params:,}")
-print(f"Trainable parameters: {trainable_params:,}")
-out_feat = 0
-for head in model.heads.values():
-    out_feat += head.out_features
-print(f'Extraction heads parameters: {model.encoder.config.hidden_size * out_feat + out_feat}')
-
+# Visualize trainable parameters
+model_parameters_info(model)
+# Set logging dict for WandB
 wandb_dict = {
     'entity': "luca-tramonti-PRIN",
     'project': "PRIN",
@@ -239,7 +172,6 @@ wandb_dict = {
         "train_only_heads": ONLY_HEADS,
     }
 }
-
 # Start training
 tracking = loop.train(
     model,
@@ -254,6 +186,10 @@ tracking = loop.train(
     #wandb_dict=None
 )
 
+
+###########
+# Plot loss
+###########
 df_1 = pd.DataFrame.from_records(tracking['train'])
 df_2 = pd.DataFrame.from_records(tracking['validation'])
 df_1['split'] = 'train'

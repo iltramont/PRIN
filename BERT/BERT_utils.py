@@ -1,9 +1,8 @@
 from pydantic import BaseModel
 from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args, Optional
+from constants import NAN_VALUE
 
-NAN_VALUE = 'NaN'
-SEED = 2026
 
 def get_regression_fields(model: type[BaseModel]) -> list[str]:
     """
@@ -78,7 +77,6 @@ def get_classification_fields(model: type[BaseModel]) -> list[str]:
             classification_fields.append(name)
     return classification_fields
 
-
 def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
     """
     Restituisce un dizionario con i campi Enum e bool del modello
@@ -110,7 +108,6 @@ def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
                 field_values[field_name].append(NAN_VALUE)
     return field_values
 
-
 def get_number_of_classes(model: type[BaseModel]) -> dict[str, int]:
     """
     Restituisce il numero di classi per ogni campo del modello.
@@ -120,7 +117,6 @@ def get_number_of_classes(model: type[BaseModel]) -> dict[str, int]:
     for field_name, values in field_values.items():
         result[field_name] = len(values)
     return result
-
 
 def create_label_to_id_map(model: type[BaseModel]) -> dict[str, dict[str, dict[str, int]]]:
     """
@@ -141,13 +137,11 @@ def create_label_to_id_map(model: type[BaseModel]) -> dict[str, dict[str, dict[s
         }
     return result
 
-
 def labels_to_bits(labels: list[str], label_to_id_map: dict[str, int]) -> list[int]:
     result = [0] * len(label_to_id_map)
     for label in labels:
         result[label_to_id_map[label]] = 1
     return result
-
 
 def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str]:
     result = []

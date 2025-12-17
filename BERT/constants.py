@@ -2,6 +2,9 @@ from pydantic import BaseModel, ConfigDict
 from enum import Enum
 from typing import Optional, List
 
+NAN_VALUE = 'NaN'
+SEED = 2026
+
 
 class Morfologia(str, Enum):
     SolidoPolipoide = "solido_polipoide"

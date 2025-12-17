@@ -10,7 +10,7 @@ from datasets import Dataset
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
 
-from BERT_utils import SEED
+from constants import SEED
 
 
 def get_loss(
