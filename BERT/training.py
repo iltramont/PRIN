@@ -13,9 +13,9 @@ from transformers import AutoTokenizer
 from datasets import DatasetDict
 
 import loop
-from constants import SEED
+from constants import SEED, BERT_ENCODER_CHECKPOINT, XLM_ROBERTA_ENCODER_CHECKPOINT, XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT
 from classifiers import ReportExtractor
-from BERT_utils import create_label_to_id_map
+from model_utils import create_label_to_id_map
 
 from train_utils import (create_hugging_face_dataset,
                          get_device,
@@ -45,7 +45,7 @@ torch.backends.cudnn.benchmark = False
 TRAIN_FILE_NAME = "train_split.csv"
 VALIDATION_FILE_NAME = "validation_split.csv"
 # Model parameters
-CHECKPOINT = "bert-base-multilingual-cased"
+CHECKPOINT = XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT
 DROPOUT_RATE = 0.2
 ADD_COMMON_LAYER = False
 # Training parameters
@@ -96,9 +96,12 @@ annotated_reports =  {split: create_list_of_annotated_reports(data[split]) for s
 ##########################
 # Load model and tokenizer
 ##########################
-model = ReportExtractor(dropout_rate=DROPOUT_RATE, add_common_layer=ADD_COMMON_LAYER).to(device)
+model = ReportExtractor(checkpoint=CHECKPOINT,
+                        dropout_rate=DROPOUT_RATE,
+                        add_common_layer=ADD_COMMON_LAYER).to(device)
 tokenizer = AutoTokenizer.from_pretrained(model.checkpoint)
 # Check the maximum number of tokens for each report
+print('model context length:', model.encoder.config.max_position_embeddings)
 for split in annotated_reports:
     print(f'{split}: {len(annotated_reports[split])} reports')
     max_n_tokens = 0
@@ -127,7 +130,8 @@ dataset = DatasetDict({
 def tokenize_function(examples):
     return tokenizer(examples['text'], padding="longest", max_length=model.encoder.config.max_position_embeddings)
 dataset = dataset.map(tokenize_function, batched=True)
-dataset = dataset.remove_columns(["token_type_ids", "text"])
+cols_to_remove = [col for col in ["token_type_ids", "text"] if col in dataset.column_names]
+dataset = dataset.remove_columns(cols_to_remove)
 dataset.set_format('torch')
 # Log before adding columns
 print(dataset)

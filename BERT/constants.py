@@ -5,6 +5,11 @@ from typing import Optional, List
 NAN_VALUE = 'NaN'
 SEED = 2026
 
+BERT_ENCODER_CHECKPOINT = "bert-base-multilingual-cased"
+XLM_ROBERTA_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-base"
+XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-large"
+BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
+
 
 class Morfologia(str, Enum):
     SolidoPolipoide = "solido_polipoide"

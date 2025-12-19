@@ -1,6 +1,6 @@
 from datasets import Dataset, DatasetDict
 from constants import AnnotatedReport, Annotations, NAN_VALUE
-from BERT_utils import get_optional_regression_fields, get_multiple_choice_fields, labels_to_bits
+from model_utils import get_optional_regression_fields, get_multiple_choice_fields, labels_to_bits
 
 import numpy as np
 import pandas as pd

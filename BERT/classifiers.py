@@ -1,19 +1,19 @@
 import torch
 import torch.nn as nn
 from transformers import AutoModel
-from BERT_utils import get_number_of_classes
-from BERT_utils import (get_regression_fields,
+from model_utils import get_number_of_classes
+from model_utils import (get_regression_fields,
                         get_multiple_choice_fields,
                         get_classification_fields,
                         get_optional_regression_fields,
                         get_binary_classification_fields
                     )
 from pydantic import BaseModel
-from constants import Annotations
+from constants import Annotations, BERT_ENCODER_CHECKPOINT, XLM_ROBERTA_ENCODER_CHECKPOINT
 
 
 class ReportExtractor(nn.Module):
-    def __init__(self, checkpoint="bert-base-multilingual-cased",
+    def __init__(self, checkpoint=BERT_ENCODER_CHECKPOINT,
                  annotations_model: type[BaseModel] = Annotations,
                  use_pooler_output: bool = False,
                  add_common_layer: bool = True,
