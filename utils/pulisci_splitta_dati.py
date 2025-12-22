@@ -12,7 +12,9 @@ import ast
 
 plt.style.use('ggplot')
 
-
+############
+# Parameters
+############
 TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.2
 RANDOM_STATE = 2025
@@ -41,21 +43,25 @@ STRATIFY_COLUMNS = (
 random.seed(RANDOM_STATE)
 base_dir = Path(__file__).parent.parent
 
-# Get data
+##############
+# Get raw data
+##############
 data_path = base_dir / "data" / DATA_FILE_NAME
 # Se il file non è presente, inserirlo manualmente prendendolo dalla cartella dropbox
 data = pd.read_csv(data_path)
 
-
+########################
+# Preliminar adjustments
+########################
 # Elimina la colonna "posizione" in quanto obsoleta, rinominando la colonna "posizione_multiple" in "posizione"
 data.drop(columns=['posizione'], inplace=True)
 data.rename(columns={'posizione_multiple': 'posizione'}, inplace=True)
-
 # Elimina colonne "carcinosi peritoneale" e "lesioni ossee" in quanto solo rispettivamente 1 e 2 record sono valorizzati.
 data.drop(columns=['carcinosi_peritoneale', 'lesioni_ossee'], inplace=True)
 
-
-# Elimina righe doppie
+###################
+# Delete duplicates
+###################
 # Intere righe duplicate. Keep last perchè i report hanno id decrescente
 duplicati = data.iloc[:, 1:].duplicated(keep='last')
 data_clean = data[duplicati == False]
@@ -64,27 +70,24 @@ duplicati = data_clean[REPORT__COLUMN_NAME].duplicated(keep='last')
 data_clean = data_clean[duplicati == False]
 # Resetta indici
 data_clean.reset_index(inplace=True, drop=True)
-
 print(f'\nRighe doppie eliminate\n{data_clean.shape = }\n')
 
-
+#########################
+# Consistency adjustments
+#########################
 # Sostituiamo valore -1 con 0 per la colonna numero depositi
 data_clean.loc[data_clean['numero_depositi'] == -1.0, 'numero_depositi'] = 0.0
-
 
 # Eliminiamo con combinazioni di valori incompatibili
 data_clean.drop(
     index=data_clean[
         (data_clean['linfonodi_sospetti'] == 0) &
         (data_clean['numero_linfonodi_non_conosciuto'] == False) &
-        (data_clean['sedi_locoregionali'] != '[]') &
-        (data_clean['profile'] == 'GuidoImbemba')
-    ].index
-, inplace=True)
+        (data_clean['sedi_locoregionali'] != '[]')
+        ].index
+    , inplace=True)
 data_clean.reset_index(inplace=True, drop=True)
-
 print(f'\nRighe con valori incompatibili eliminate\n{data_clean.shape = }\n')
-
 
 # Sostituiamo i valore con None nella colonna dei dettagli degli organi coinvolti
 # pechè altri valori non sono compatibili con "no" nella colonna infiltrazione_organi_extra
@@ -92,14 +95,12 @@ for i in range(data_clean.shape[0]):
     if (data_clean.loc[i, 'infiltrazione_organi_extra'] == 'no') and (data_clean.loc[i, 'infiltrazione_organi_dettagli'] is not None):
         data_clean.loc[i, 'infiltrazione_organi_dettagli'] = None
 
-
 # creazione nuova colonna "sedi_linfonodi"
 sedi_linfonodi = []
 for s1, s2 in zip(data_clean.sedi_locoregionali, data_clean.sedi_non_locoregionali):
-    sedi_linfonodi.append(str(ast.literal_eval(s1) + ast.literal_eval(s2)))
+    sedi_linfonodi.append(ast.literal_eval(s1) + ast.literal_eval(s2))
 data_clean['sedi_linfonodi'] = sedi_linfonodi
 print(f'Nuova colonna "sedi_linfonodi" creata\n{data_clean.shape = }')
-
 
 # Aggregazione / modifica delle colonne
 # Dettagli infiltrazione organi -> il formato della clonna viene reso uguale a quello dei linfonodi
@@ -108,22 +109,21 @@ infiltrazione_organi_dettagli_new = []
 for s in data_clean.infiltrazione_organi_dettagli.fillna('NaN'):
     dettagli = []
     if s == 'NaN':
-        infiltrazione_organi_dettagli_new.append(str(dettagli))
+        infiltrazione_organi_dettagli_new.append(dettagli)
     else:
         d = ast.literal_eval(s)
         if 'pavimento_pelvico' in d:
             dettagli.append('pavimento_pelvico')
         if ('altro' in d) or ('utero' in d) or ('sacro' in d):
             dettagli.append('altro')
-        infiltrazione_organi_dettagli_new.append(str(dettagli))
-data_clean.loc[:, 'infiltrazione_organi_dettagli'] = infiltrazione_organi_dettagli_new
-
+        infiltrazione_organi_dettagli_new.append(dettagli)
+data_clean['infiltrazione_organi_dettagli'] = infiltrazione_organi_dettagli_new
 
 # Sedi linfonodi
 # Teniamo solo NaN, altro, mesorettali, rettali_superiori, otturatori, iliaci
 sedi_linfonodi_new = []
 for s in data_clean.sedi_linfonodi:
-    sedi = ast.literal_eval(s)
+    sedi = s
     sedi_new = set()
     for sede in sedi:
         if sede in ['mesorettali', 'rettali_superiori', 'otturatori']:
@@ -132,33 +132,29 @@ for s in data_clean.sedi_linfonodi:
             sedi_new.add('iliaci')
         else:
             sedi_new.add('altro')
-    sedi_linfonodi_new.append(str(list(sedi_new)))
-data_clean.loc[:, 'sedi_linfonodi'] = sedi_linfonodi_new
-
+    sedi_linfonodi_new.append(list(sedi_new))
+data_clean['sedi_linfonodi'] = sedi_linfonodi_new
 
 # Coinvolgimento fascia mesorettale. Trasformiamo rischio in si
 data_clean.loc[data_clean['coinvolgimento_fascia_mesorettale'] == 'rischio', 'coinvolgimento_fascia_mesorettale'] = 'si'
 
-
 # Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
 data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = 'si'
-
 
 # Infiltrazione sfinteri. Trasformiamo la posizione in si. per otenere una classe (si/no/NaN)
 data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = 'si'
 data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = 'si'
 data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = 'si'
 
-
 # Emvi. Trasformiamo sospetto in si
 data_clean.loc[data_clean['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
-
 
 # Depositi tumorali. Trasformiamo sospetto in si
 data_clean.loc[data_clean['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = 'si'
 
-
+########
 # PLOT 1
+########
 data_plot = data_clean.fillna('NaN')
 columns_plot = ['morfologia', 'infiltrazione_tessuto_adiposo', 'coinvolgimento_fascia_mesorettale',
                 'riflessione_peritoneale_anteriore',
@@ -183,10 +179,14 @@ for i, col in enumerate(columns_plot):
         x_text = p.get_x() + p.get_width() / 2
         ax.text(x=x_text, y=y_text, s=f'{y_text}', ha='center', va='bottom')
 plt.tight_layout()
-#plt.show()
 
+plt.show()
 
+exit()
+
+########
 # PLOT 2
+########
 columns = ['posizione', 'sedi_locoregionali', 'sedi_non_locoregionali', 'sedi_linfonodi',
            'infiltrazione_organi_dettagli']
 
