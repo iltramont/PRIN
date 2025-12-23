@@ -13,8 +13,6 @@ import seaborn as sns
 import ast
 
 
-plt.style.use('ggplot')
-
 ############
 # Parameters
 ############
@@ -45,25 +43,23 @@ STRATIFY_COLUMNS = (
     'infiltrazione_organi_extra'
 )
 
+#############
+# Preliminari
+#############
 random.seed(RANDOM_STATE)
 base_dir = Path(__file__).parent.parent
+plt.style.use('ggplot')
 
 
 ##############
 # Get raw data
 ##############
 data_path = base_dir / "data" / DATA_FILE_NAME
-# Se il file non è presente, inserirlo manualmente prendendolo dalla cartella dropbox
 data = pd.read_csv(data_path)
-
-print(data)
-
+print(f'{data.shape = }')
 
 # Keep only report and target columns
 target_columns = list(ReportData.model_fields.keys())
-
-print(target_columns)
-
 
 # Differenziamo in base all'annotatore
 data_guido = data[data['profile'] == 'GuidoImbemba'].copy(deep=True)
@@ -74,28 +70,25 @@ print(f'{data_guido.shape = }')
 print(f'{data_pietro.shape = }')
 
 
+###########
+# Splitting
+###########
 if ONLY_GUIDO:
     X = data_guido[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
 else:
     X = data[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True) 
 print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
-
-
 # Create dummies to stratify (train - test)
 encoder = OneHotEncoder(sparse_output=False)
 encoder.fit(X[list(STRATIFY_COLUMNS)])
 Y_dummy = encoder.transform(X[list(STRATIFY_COLUMNS)])
 print(f'Create dummies per stratificazione\n{Y_dummy.shape = }')
-
-
 # Train test split with stratification
 index_train, Y_train, index_test, Y_test = iterative_train_test_split(X.index.to_numpy().reshape(-1, 1),
                                                                       Y_dummy,
                                                                       test_size=TEST_SIZE)
-
 index_train = index_train.reshape(1, -1)[0]
 index_test = index_test.reshape(1, -1)[0]
-
 X_train = X.iloc[index_train].copy(deep=True)
 X_test = X.iloc[index_test].copy(deep=True)
 
@@ -127,7 +120,10 @@ X_validation['split'] = 'validation'
 
 print(f'\nSplitatto il dataset\n{X_train.shape = }\n{X_test.shape = }\n{X_validation.shape = }')
 
+
+##########################
 # Visualize stratification
+##########################
 n_columns = 3
 n_rows, r = divmod(len(STRATIFY_COLUMNS), n_columns)
 if r != 0:
@@ -143,7 +139,9 @@ for i in range(len(STRATIFY_COLUMNS)):
 plt.show()
 
 
+###########
 # Save data
+###########
 if SAVE_DATA:
     if ONLY_GUIDO:
         train_path = base_dir / "data" / (TRAIN_SPLIT_FILE_NAME + '_guido.csv')

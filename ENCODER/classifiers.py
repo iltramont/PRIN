@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 from transformers import AutoModel
@@ -32,7 +33,7 @@ class ReportExtractor(nn.Module):
         self.classification_fields = get_classification_fields(annotations_model)
         self.num_classes = get_number_of_classes(annotations_model)
         # Layers
-        self.encoder = AutoModel.from_pretrained(checkpoint)  # Encoder base model (like BERT)
+        self.encoder = AutoModel.from_pretrained(checkpoint)  # Encoder base model (like ENCODER)
         # Get embedding length
         hidden = self.encoder.config.hidden_size
         if add_common_layer:
@@ -85,3 +86,36 @@ class ReportExtractor(nn.Module):
             outputs[field] = out
         # outputs["_preds"] = outputs
         return outputs
+
+    def save_pretrained(self, save_directory: str):
+        """Salva encoder HuggingFace + heads custom"""
+        os.makedirs(save_directory, exist_ok=True)
+        # Salva encoder HuggingFace
+        self.encoder.save_pretrained(save_directory)
+        # Salva configurazione custom
+        torch.save({
+            "checkpoint": self.checkpoint,
+            "annotations_model": self.annotations_model.__name__,
+            "use_pooler_output": self.use_pooler_output,
+            "add_common_layer": self.add_common_layer,
+            "dropout_rate": self.dropout_rate,
+            "state_dict": self.state_dict()
+        }, os.path.join(save_directory, "report_extractor_trained.pt"))
+
+    @classmethod
+    def from_pretrained(cls, load_directory: str, annotations_model: type[BaseModel] = Annotations, device="cpu"):
+        """Ricarica encoder HuggingFace + heads custom"""
+        # Carica encoder HuggingFace
+        encoder = AutoModel.from_pretrained(load_directory)
+        # Carica configurazione custom
+        checkpoint = torch.load(os.path.join(load_directory, "report_extractor_trained.pt"), map_location=device)
+        model = cls(checkpoint=checkpoint["checkpoint"],
+                    annotations_model=annotations_model,
+                    use_pooler_output=checkpoint["use_pooler_output"],
+                    add_common_layer=checkpoint["add_common_layer"],
+                    dropout_rate=checkpoint["dropout_rate"])
+        # Sostituisci encoder con quello caricato
+        model.encoder = encoder
+        # Carica pesi
+        model.load_state_dict(checkpoint["state_dict"])
+        return model

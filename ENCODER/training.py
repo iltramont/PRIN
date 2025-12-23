@@ -13,7 +13,11 @@ from transformers import AutoTokenizer
 from datasets import DatasetDict
 
 import loop
-from constants import SEED, BERT_ENCODER_CHECKPOINT, XLM_ROBERTA_ENCODER_CHECKPOINT, XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT
+from constants import (SEED,
+                       BERT_ENCODER_CHECKPOINT,
+                       XLM_ROBERTA_ENCODER_CHECKPOINT,
+                       XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT,
+                       BIOBERT_ITALIAN_ENCODER)
 from classifiers import ReportExtractor
 from model_utils import create_label_to_id_map
 
@@ -45,9 +49,9 @@ torch.backends.cudnn.benchmark = False
 TRAIN_FILE_NAME = "train_split.csv"
 VALIDATION_FILE_NAME = "validation_split.csv"
 # Model parameters
-CHECKPOINT = XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT
+CHECKPOINT = BIOBERT_ITALIAN_ENCODER
 DROPOUT_RATE = 0.2
-ADD_COMMON_LAYER = False
+ADD_COMMON_LAYER = True
 # Training parameters
 N_EPOCHS = 50
 BATCH_SIZE = 4
@@ -204,3 +208,10 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 
 plt.show()
+
+
+############
+# Save model
+############
+model.save_pretrained(base_dir / "saved_models" / "report_extractor")
+tokenizer.save_pretrained(base_dir / "saved_models" / "report_extractor")

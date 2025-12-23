@@ -1,13 +1,7 @@
 import pandas as pd
 from pathlib import Path
-#from sklearn.model_selection import train_test_split
-from skmultilearn.model_selection import iterative_train_test_split
 
 import random
-from schema_json import ReportData
-
-
-from sklearn.preprocessing import OneHotEncoder
 import matplotlib.pyplot as plt
 import seaborn as sns
 import ast
@@ -44,6 +38,9 @@ STRATIFY_COLUMNS = (
     'infiltrazione_organi_extra'
 )
 
+#############
+# Preliminari
+#############
 random.seed(RANDOM_STATE)
 base_dir = Path(__file__).parent.parent
 
@@ -56,9 +53,9 @@ data_path = base_dir / "data" / DATA_FILE_NAME
 data = pd.read_csv(data_path)
 
 
-########################
-# Preliminar adjustments
-########################
+###################
+# First adjustments
+###################
 # Elimina la colonna "posizione" in quanto obsoleta, rinominando la colonna "posizione_multiple" in "posizione"
 data.drop(columns=['posizione'], inplace=True)
 data.rename(columns={'posizione_multiple': 'posizione'}, inplace=True)
@@ -111,7 +108,7 @@ data['sedi_linfonodi'] = sedi_linfonodi
 print(f'Nuova colonna "sedi_linfonodi" creata\n{data.shape = }')
 
 # Aggregazione / modifica delle colonne
-# Dettagli infiltrazione organi -> il formato della clonna viene reso uguale a quello dei linfonodi
+# Dettagli infiltrazione organi -> il formato della colonna viene reso uguale a quello dei linfonodi
 # Teniamo solo NaN, pavimento_pelvico e altro
 infiltrazione_organi_dettagli_new = []
 for s in data.infiltrazione_organi_dettagli.fillna('NaN'):
@@ -149,7 +146,7 @@ data.loc[data['coinvolgimento_fascia_mesorettale'] == 'rischio', 'coinvolgimento
 # Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
 data.loc[data['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = 'si'
 
-# Infiltrazione sfinteri. Trasformiamo la posizione in si. per otenere una classe (si/no/NaN)
+# Infiltrazione sfinteri. Trasformiamo la posizione in si per ottenere una classe (si/no/NaN)
 data.loc[data['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = 'si'
 data.loc[data['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = 'si'
 data.loc[data['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = 'si'
