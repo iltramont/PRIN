@@ -190,8 +190,8 @@ tracking = loop.train(
     lr=LEARNING_RATE,
     verbose=1,
     batch_size_val=BATCH_SIZE_VALIDATION,
-    wandb_dict=wandb_dict
-    #wandb_dict=None
+    #wandb_dict=wandb_dict
+    wandb_dict=None
 )
 
 
