@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args
 from constants import NAN_VALUE
+import torch
 
 
 def get_regression_fields(model: type[BaseModel]) -> list[str]:
@@ -148,4 +149,20 @@ def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str
     for i, bit in enumerate(bits):
         if bit == 1:
             result.append(id_to_label_map[i])
+    return result
+
+
+def from_output_to_labels(model_output: dict[torch.Tensor],
+                          regression_fields: list[str],
+                          binary_fields: list[str],
+                          classification_fields: list[str],
+                          multiple_choice_fields: list[str],
+                          label_to_id_map: dict[str, dict[str, dict[str, int]]],
+                          normalization_stats: dict[str, tuple[float]] | None = None) -> dict:
+    with torch.no_grad():
+        result = dict()
+        for field in regression_fields:
+            mu, std = normalization_stats[field]
+            tensor = (model_output[field] * std) + mu
+        result[field] = tensor
     return result

@@ -90,8 +90,7 @@ def add_target_columns_to_dataset(dataset: Dataset,
             value = getattr(r.report_data, f)
             if value is None:
                 value = 0
-            mu = normalization_stats[f][0]
-            std = normalization_stats[f][1]
+            mu, std = normalization_stats[f]
             value = (float(value) - mu) / std
             target.append(value)
         result = result.add_column(f, target)
