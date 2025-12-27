@@ -18,7 +18,8 @@ class ReportExtractor(nn.Module):
                  annotations_model: type[BaseModel] = Annotations,
                  use_pooler_output: bool = False,
                  add_common_layer: bool = True,
-                 dropout_rate: float = 0.2):
+                 dropout_rate: float = 0.2,
+                 normalization_stats: None | dict[str, tuple[float]] = None):
         super().__init__()
         # Model attributes
         self.checkpoint = checkpoint
@@ -27,6 +28,7 @@ class ReportExtractor(nn.Module):
         self.add_common_layer = add_common_layer
         self.dropout_rate = dropout_rate
         self.regression_fields = get_regression_fields(annotations_model)
+        self.normalization_stats = normalization_stats
         self.multiple_choice_fields = get_multiple_choice_fields(annotations_model)
         self.binary_classification_fields = get_binary_classification_fields(annotations_model)
         self.optional_regression_fields = get_optional_regression_fields(annotations_model)
@@ -99,6 +101,7 @@ class ReportExtractor(nn.Module):
             "use_pooler_output": self.use_pooler_output,
             "add_common_layer": self.add_common_layer,
             "dropout_rate": self.dropout_rate,
+            "normalization_stats": self.normalization_stats,
             "state_dict": self.state_dict()
         }, os.path.join(save_directory, "report_extractor_trained.pt"))
 
@@ -113,7 +116,8 @@ class ReportExtractor(nn.Module):
                     annotations_model=annotations_model,
                     use_pooler_output=checkpoint["use_pooler_output"],
                     add_common_layer=checkpoint["add_common_layer"],
-                    dropout_rate=checkpoint["dropout_rate"])
+                    dropout_rate=checkpoint["dropout_rate"],
+                    normalization_stats=checkpoint["normalization_stats"])
         # Sostituisci encoder con quello caricato
         model.encoder = encoder
         # Carica pesi

@@ -164,15 +164,15 @@ def from_output_to_labels(model_output: dict[torch.Tensor],
         for field in regression_fields:
             mu, std = normalization_stats[field]
             tensor = (model_output[field] * std) + mu
-            result[field] = tensor
+            result[field] = tensor.reshape(-1).cpu()
         for field in binary_fields:
             tensor = torch.nn.functional.sigmoid(model_output[field])
-            tensor = tensor > 0.5
-            result[field] = tensor
+            #tensor = tensor > 0.5
+            result[field] = tensor.reshape(-1).cpu()
         for field in multiple_choice_fields:
             tensor = torch.nn.functional.sigmoid(model_output[field])
-            result[field] = torch.round(tensor).to(int)
+            result[field] = tensor.cpu()
         for field in classification_fields:
             tensor = torch.nn.functional.softmax(model_output[field])
-            result[field] = tensor.argmax(dim=1)
+            result[field] = tensor.cpu()
     return result
