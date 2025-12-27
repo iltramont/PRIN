@@ -53,7 +53,7 @@ CHECKPOINT = BIOBERT_ITALIAN_ENCODER
 DROPOUT_RATE = 0.2
 ADD_COMMON_LAYER = True
 # Training parameters
-N_EPOCHS = 50
+N_EPOCHS = 5
 BATCH_SIZE = 4
 BATCH_SIZE_VALIDATION = 4
 LEARNING_RATE = 1e-5
@@ -140,13 +140,13 @@ dataset.set_format('torch')
 # Log before adding columns
 print(dataset)
 # Add annotation fields to the dataset
-label_to_id_map = create_label_to_id_map(model.annotations_model)
+#label_to_id_map = create_label_to_id_map(model.annotations_model)
 normalization_stats = get_normalization_stats(annotated_reports['train'], model.regression_fields)
 model.normalization_stats = normalization_stats
 for split, reports in annotated_reports.items():
     dataset[split] = add_target_columns_to_dataset(dataset=dataset[split],
                                                    annotated_reports=reports,
-                                                   label_to_id_map=label_to_id_map,
+                                                   label_to_id_map=model.label_to_id_map,
                                                    classification_columns=model.classification_fields,
                                                    binary_classification_columns=model.binary_classification_fields,
                                                    multiple_choice_columns=model.multiple_choice_fields,

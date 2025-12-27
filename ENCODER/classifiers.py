@@ -1,4 +1,6 @@
 import os
+
+import numpy
 import torch
 import torch.nn as nn
 from transformers import AutoModel
@@ -7,7 +9,8 @@ from model_utils import (get_regression_fields,
                         get_multiple_choice_fields,
                         get_classification_fields,
                         get_optional_regression_fields,
-                        get_binary_classification_fields
+                        get_binary_classification_fields,
+                        create_label_to_id_map
                     )
 from pydantic import BaseModel
 from constants import Annotations, BERT_ENCODER_CHECKPOINT, XLM_ROBERTA_ENCODER_CHECKPOINT
@@ -29,6 +32,7 @@ class ReportExtractor(nn.Module):
         self.dropout_rate = dropout_rate
         self.regression_fields = get_regression_fields(annotations_model)
         self.normalization_stats = normalization_stats
+        self.label_to_id_map = create_label_to_id_map(annotations_model)
         self.multiple_choice_fields = get_multiple_choice_fields(annotations_model)
         self.binary_classification_fields = get_binary_classification_fields(annotations_model)
         self.optional_regression_fields = get_optional_regression_fields(annotations_model)
@@ -89,6 +93,33 @@ class ReportExtractor(nn.Module):
         # outputs["_preds"] = outputs
         return outputs
 
+
+    def all_fields(self) -> list[str]:
+        return list(self.heads.keys())
+
+
+    def rework_output(self, model_output: dict[str, torch.Tensor]) -> dict[str, numpy.ndarray]:
+        with torch.no_grad():
+            result = dict()
+            for field in self.regression_fields:
+                if self.normalization_stats is not None:
+                    mu, std = self.normalization_stats[field]
+                    tensor = (model_output[field] * std) + mu
+                tensor = torch.nn.functional.relu(tensor)
+                result[field] = tensor.reshape(-1).cpu().numpy()
+            for field in self.binary_classification_fields:
+                tensor = torch.nn.functional.sigmoid(model_output[field])
+                # tensor = tensor > 0.5
+                result[field] = tensor.reshape(-1).cpu().numpy()
+            for field in self.multiple_choice_fields:
+                tensor = torch.nn.functional.sigmoid(model_output[field])
+                result[field] = tensor.cpu().numpy()
+            for field in self.classification_fields:
+                tensor = torch.nn.functional.softmax(model_output[field], dim=-1)
+                result[field] = tensor.cpu().numpy()
+        return result
+
+
     def save_pretrained(self, save_directory: str):
         """Salva encoder HuggingFace + heads custom"""
         os.makedirs(save_directory, exist_ok=True)
@@ -102,6 +133,7 @@ class ReportExtractor(nn.Module):
             "add_common_layer": self.add_common_layer,
             "dropout_rate": self.dropout_rate,
             "normalization_stats": self.normalization_stats,
+            "label_to_id_map": self.label_to_id_map,
             "state_dict": self.state_dict()
         }, os.path.join(save_directory, "report_extractor_trained.pt"))
 
@@ -111,7 +143,9 @@ class ReportExtractor(nn.Module):
         # Carica encoder HuggingFace
         encoder = AutoModel.from_pretrained(load_directory)
         # Carica configurazione custom
-        checkpoint = torch.load(os.path.join(load_directory, "report_extractor_trained.pt"), map_location=device)
+        checkpoint = torch.load(os.path.join(load_directory, "report_extractor_trained.pt"),
+                                map_location=device,
+                                weights_only=False)
         model = cls(checkpoint=checkpoint["checkpoint"],
                     annotations_model=annotations_model,
                     use_pooler_output=checkpoint["use_pooler_output"],

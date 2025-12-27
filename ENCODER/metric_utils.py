@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.metrics as metrics
+from fontTools.merge import cmap
 from scipy import stats
 
 
@@ -69,10 +70,10 @@ def metrics_classification(y_true, pred_prob, id_to_label_dict: dict[int, str], 
         fig, axes = plt.subplots(1, 2, figsize=(20,5))
         if field_name is not None:
             fig.suptitle(field_name, fontsize='xx-large')
-        metrics.ConfusionMatrixDisplay.from_predictions(y_true, y_pred, ax=axes[0], xticks_rotation=45)
+        metrics.ConfusionMatrixDisplay.from_predictions(y_true, y_pred, ax=axes[0], xticks_rotation=45, cmap='Blues')
         axes[0].grid(False)
         axes[0].set_title(f'Confusion Matrix')
-        metrics.ConfusionMatrixDisplay.from_predictions(y_true, y_pred, ax=axes[1], xticks_rotation=45, normalize='all')
+        metrics.ConfusionMatrixDisplay.from_predictions(y_true, y_pred, ax=axes[1], xticks_rotation=45, normalize='all', cmap='Blues')
         axes[1].grid(False)
         axes[1].set_title(f'Confusion Matrix - percentage')
     return report
@@ -144,3 +145,47 @@ def metrics_regression(y_true, y_pred, plot=True, field_name=None):
         plt.show()
 
     return results
+
+
+def metrics_multilabel(y_true: np.ndarray, pred_prob: np.ndarray,
+                       id_to_label_dict: dict[int, str],
+                       thresholds: float | list[float] = 0.5,
+                       plot=True,
+                       field_name=None):
+
+    # --- Predizioni ---
+    if type(thresholds) is list:
+        thresholds = np.array(thresholds)
+    y_pred = (pred_prob > thresholds).astype(int)
+
+    labels = list(id_to_label_dict.values())
+    result = {
+        'exact_match_acc': (y_pred == y_true).all(axis=1).mean(),
+        'hamming_loss': metrics.hamming_loss(y_true, y_pred),  # Lower is better
+        'f1_micro': metrics.f1_score(y_true, y_pred, average="micro", zero_division=0.0),
+        'f1_macro': metrics.f1_score(y_true, y_pred, average="macro", zero_division=0.0),
+        'f1_weighted': metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        'f1_samples': metrics.f1_score(y_true, y_pred, average="samples", zero_division=0.0),
+        'jaccard_micro': metrics.jaccard_score(y_true, y_pred, average="micro", zero_division=0.0),
+        'jaccard_macro': metrics.jaccard_score(y_true, y_pred, average="macro", zero_division=0.0),
+        'jaccard_weighted': metrics.jaccard_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        'jaccard_samples': metrics.jaccard_score(y_true, y_pred, average="samples", zero_division=0.0)
+    }
+
+    # --- Plot ---
+    if plot:
+        confusion_matrices = metrics.multilabel_confusion_matrix(y_true, y_pred)
+        fig, axes = plt.subplots(1, len(labels), figsize=(5*len(labels), 5))
+        if len(labels) == 1:
+            axes = [axes]
+
+        if field_name is not None:
+            fig.suptitle(field_name, fontsize="xx-large")
+
+        for i, m in enumerate(confusion_matrices):
+            metrics.ConfusionMatrixDisplay(confusion_matrix=m).plot(ax=axes[i])
+            axes[i].grid(False)
+            axes[i].set_title(labels[i])
+        plt.show()
+
+    return result

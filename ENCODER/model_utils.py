@@ -151,28 +151,3 @@ def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str
             result.append(id_to_label_map[i])
     return result
 
-
-def from_output_to_labels(model_output: dict[torch.Tensor],
-                          regression_fields: list[str],
-                          binary_fields: list[str],
-                          classification_fields: list[str],
-                          multiple_choice_fields: list[str],
-                          label_to_id_map: dict[str, dict[str, dict[str, int]]],
-                          normalization_stats: dict[str, tuple[float]] | None = None) -> dict:
-    with torch.no_grad():
-        result = dict()
-        for field in regression_fields:
-            mu, std = normalization_stats[field]
-            tensor = (model_output[field] * std) + mu
-            result[field] = tensor.reshape(-1).cpu()
-        for field in binary_fields:
-            tensor = torch.nn.functional.sigmoid(model_output[field])
-            #tensor = tensor > 0.5
-            result[field] = tensor.reshape(-1).cpu()
-        for field in multiple_choice_fields:
-            tensor = torch.nn.functional.sigmoid(model_output[field])
-            result[field] = tensor.cpu()
-        for field in classification_fields:
-            tensor = torch.nn.functional.softmax(model_output[field])
-            result[field] = tensor.cpu()
-    return result
