@@ -2,11 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import sklearn.metrics as metrics
-from fontTools.merge import cmap
 from scipy import stats
-
-
-
 
 
 def metrics_binary(y_true, pred_prob, threshold=0.5, plot=True, field_name=None):
@@ -77,7 +73,6 @@ def metrics_classification(y_true, pred_prob, id_to_label_dict: dict[int, str], 
         axes[1].grid(False)
         axes[1].set_title(f'Confusion Matrix - percentage')
     return report
-
 
 
 def metrics_regression(y_true, y_pred, plot=True, field_name=None):
@@ -189,3 +184,6 @@ def metrics_multilabel(y_true: np.ndarray, pred_prob: np.ndarray,
         plt.show()
 
     return result
+
+
+
