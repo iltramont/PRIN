@@ -139,11 +139,7 @@ for split in results:
             actual[f] = dataset[split][f].tolist()
     results[split]['actual'] = actual
     
-    
-    
-print(model.label_to_id_map)    
-exit()
-    
+        
 results['info'] = {
     'regression_fields': model.regression_fields,
     'classification_fields': model.classification_fields,
@@ -157,5 +153,7 @@ results['info'] = {
 ##############
 # Save results
 ##############
-with open(base_dir / "ENCODER" / "results.json", "w") as f:
+save_path = base_dir / "ENCODER" / "results.json"
+with open(save_path, "w") as f:
     json.dump(results, f, indent=4)
+print(f"Results saved to {save_path}")
