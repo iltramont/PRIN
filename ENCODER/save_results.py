@@ -139,6 +139,20 @@ for split in results:
             actual[f] = dataset[split][f].tolist()
     results[split]['actual'] = actual
     
+    
+    
+print(model.label_to_id_map)    
+exit()
+    
+results['info'] = {
+    'regression_fields': model.regression_fields,
+    'classification_fields': model.classification_fields,
+    'binary_classification_fields': model.binary_classification_fields,
+    'multiple_choice_fields': model.multiple_choice_fields,
+    'normalization_stats': model.normalization_stats,
+    'label_to_id_map': model.label_to_id_map
+}
+    
 
 ##############
 # Save results

@@ -28,6 +28,7 @@ def metrics_binary(y_true, pred_prob, threshold=0.5, plot=True, field_name=None)
            'cohen kappa': cohen_kappa,
            'average precision': average_precision
     }
+    cm = metrics.confusion_matrix(y_true, y_pred)
     if plot:
         fig, axes = plt.subplots(1, 4, figsize=(25,5))
         if field_name is not None:
@@ -52,17 +53,29 @@ def metrics_binary(y_true, pred_prob, threshold=0.5, plot=True, field_name=None)
         axes[3].set_ylabel("F1 score")
         axes[3].set_title("F1 score vs Threshold")
         plt.show()
-    return results
+    return results, cm
 
 
 def metrics_classification(y_true, pred_prob, id_to_label_dict: dict[int, str], plot=True, field_name=None):
     y_pred = pred_prob.argmax(axis=-1)
-    y_pred = [id_to_label_dict[i] for i in y_pred]
-    y_true = [id_to_label_dict[i] for i in y_true]
-    report = metrics.classification_report(y_true, y_pred, output_dict=True, zero_division=0.0)
-    cohen_kappa = metrics.cohen_kappa_score(y_true, y_pred)
-    report['cohen_kappa'] = cohen_kappa
+       
+    result = {
+        'accuracy': metrics.accuracy_score(y_true, y_pred),
+        'cohen_kappa': metrics.cohen_kappa_score(y_true, y_pred),
+        'f1_micro': metrics.f1_score(y_true, y_pred, average="micro", zero_division=0.0),
+        'f1_macro': metrics.f1_score(y_true, y_pred, average="macro", zero_division=0.0),
+        'f1_weighted': metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        'precision_micro': metrics.precision_score(y_true, y_pred, average="micro", zero_division=0.0),
+        'precision_macro': metrics.precision_score(y_true, y_pred, average="macro", zero_division=0.0),
+        'precision_weighted': metrics.precision_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        'recall_micro': metrics.recall_score(y_true, y_pred, average="micro", zero_division=0.0),
+        'recall_macro': metrics.recall_score(y_true, y_pred, average="macro", zero_division=0.0),
+        'recall_weighted': metrics.recall_score(y_true, y_pred, average="weighted", zero_division=0.0),
+    }
+    cm = metrics.confusion_matrix(y_true, y_pred, labels=list(id_to_label_dict.keys()))
     if plot:
+        y_pred = [id_to_label_dict[i] for i in y_pred]
+        y_true = [id_to_label_dict[i] for i in y_true] 
         fig, axes = plt.subplots(1, 2, figsize=(20,5))
         if field_name is not None:
             fig.suptitle(field_name, fontsize='xx-large')
@@ -72,22 +85,23 @@ def metrics_classification(y_true, pred_prob, id_to_label_dict: dict[int, str], 
         metrics.ConfusionMatrixDisplay.from_predictions(y_true, y_pred, ax=axes[1], xticks_rotation=45, normalize='all', cmap='Blues')
         axes[1].grid(False)
         axes[1].set_title(f'Confusion Matrix - percentage')
-    return report
+        plt.show()
+    return result, cm
 
 
 def metrics_regression(y_true, y_pred, plot=True, field_name=None):
     # --- Metriche principali ---
     mae = metrics.mean_absolute_error(y_true, y_pred)
     mse = metrics.mean_squared_error(y_true, y_pred)
-    rmse = np.sqrt(mse)
+    rmse = metrics.root_mean_squared_error(y_true, y_pred)
     r2 = metrics.r2_score(y_true, y_pred)
     mape = metrics.mean_absolute_percentage_error(y_true, y_pred)
     medae = metrics.median_absolute_error(y_true, y_pred)
     explained_var = metrics.explained_variance_score(y_true, y_pred)
 
     # Correlazioni
-    pearson_corr, _ = stats.pearsonr(y_true, y_pred)
-    spearman_corr, _ = stats.spearmanr(y_true, y_pred)
+    #pearson_corr, _ = stats.pearsonr(y_true, y_pred)
+    #spearman_corr, _ = stats.spearmanr(y_true, y_pred)
 
     results = {
         "MAE": mae,
@@ -97,8 +111,8 @@ def metrics_regression(y_true, y_pred, plot=True, field_name=None):
         "MAPE": mape,
         "Median AE": medae,
         "Explained variance": explained_var,
-        "Pearson correlation": pearson_corr,
-        "Spearman correlation": spearman_corr
+        #"Pearson correlation": pearson_corr,
+        #"Spearman correlation": spearman_corr
     }
 
     # --- Plot ---
@@ -166,10 +180,10 @@ def metrics_multilabel(y_true: np.ndarray, pred_prob: np.ndarray,
         'jaccard_weighted': metrics.jaccard_score(y_true, y_pred, average="weighted", zero_division=0.0),
         'jaccard_samples': metrics.jaccard_score(y_true, y_pred, average="samples", zero_division=0.0)
     }
-
+    cms = metrics.multilabel_confusion_matrix(y_true, y_pred)
     # --- Plot ---
     if plot:
-        confusion_matrices = metrics.multilabel_confusion_matrix(y_true, y_pred)
+        
         fig, axes = plt.subplots(1, len(labels), figsize=(5*len(labels), 5))
         if len(labels) == 1:
             axes = [axes]
@@ -177,13 +191,13 @@ def metrics_multilabel(y_true: np.ndarray, pred_prob: np.ndarray,
         if field_name is not None:
             fig.suptitle(field_name, fontsize="xx-large")
 
-        for i, m in enumerate(confusion_matrices):
+        for i, m in enumerate(cms):
             metrics.ConfusionMatrixDisplay(confusion_matrix=m).plot(ax=axes[i])
             axes[i].grid(False)
             axes[i].set_title(labels[i])
         plt.show()
 
-    return result
+    return result, cms
 
 
 
