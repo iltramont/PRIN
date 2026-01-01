@@ -41,6 +41,7 @@ class RiflessionePeritonealeAnteriore(str, Enum):
 class InfiltrazioneTessutoAdiposo(str, Enum):      
     No = "no"
     Sospetto = "sospetto"
+    #Si = "si"
     Si5mm = "si_5mm"
     Si5mmPlus = "si_5mm_plus"
 

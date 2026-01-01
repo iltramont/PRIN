@@ -34,11 +34,17 @@ for field, d in results['info']['label_to_id_map'].items():
 ############
 reg_fields = results['info']['regression_fields']
 df = []
-# TODO: exclude when is_nan is True
 for field in reg_fields:
     predicted = np.array(results[SPLIT]['predicted'][field])
     actual = np.array(results[SPLIT]['actual'][field])
-    m = metric_utils.metrics_regression(actual, predicted, plot=False, field_name=field)
+    is_nan_field = field + "_is_nan"
+    print(len(predicted), len(actual))
+    if is_nan_field in results[SPLIT]['actual']:
+        is_nan = np.array(results[SPLIT]['actual'][is_nan_field], dtype=bool)
+        predicted = predicted[~is_nan]
+        actual = actual[~is_nan]
+    print(len(predicted), len(actual))
+    m = metric_utils.metrics_regression(actual, predicted, plot=True, field_name=field)
     df.append(pd.Series(m, name=field))
 df = pd.DataFrame(df)
 

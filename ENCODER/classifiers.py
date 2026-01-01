@@ -86,11 +86,7 @@ class ReportExtractor(nn.Module):
         # Apply each head to get predictions for each field
         outputs = dict()
         for field, head in self.heads.items():
-            out = head(embeddings)
-            #if field in self.regression_fields:
-            #    out = nn.functional.relu(out)
-            outputs[field] = out
-        # outputs["_preds"] = outputs
+            outputs[field] = head(embeddings)
         return outputs
 
 
@@ -109,7 +105,6 @@ class ReportExtractor(nn.Module):
                 result[field] = tensor.reshape(-1).cpu().numpy()
             for field in self.binary_classification_fields:
                 tensor = torch.nn.functional.sigmoid(model_output[field])
-                # tensor = tensor > 0.5
                 result[field] = tensor.reshape(-1).cpu().numpy()
             for field in self.multiple_choice_fields:
                 tensor = torch.nn.functional.sigmoid(model_output[field])
