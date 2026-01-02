@@ -119,3 +119,91 @@ def model_parameters_info(model: torch.nn.Module):
     print(f'Extraction heads parameters: {model.encoder.config.hidden_size * out_feat + out_feat:,}')
 
     
+    
+def compute_classification_weights(column: np.ndarray, num_classes: int) -> np.ndarray:
+    """
+    Compute class weights for imbalanced classification.
+    Args:
+        column: numpy array of shape (num_samples,) with class labels.
+        num_classes: total number of classes.
+    Returns:
+        weights: torch tensor of shape (num_classes,) with weights for each class.
+    """
+    class_counts = np.zeros(num_classes)
+    for i in range(num_classes):
+        class_counts[i] = np.sum(column == i)
+    # evita divisioni per zero
+    class_counts = np.clip(class_counts, a_min=1, a_max=None)
+    return class_counts.sum() / (num_classes * class_counts)
+
+
+def compute_multilabel_pos_weights(matrix: np.ndarray) -> np.ndarray:
+    """
+    Compute class weights for imbalanced multilabel classification.
+    Args:
+        matrix: numpy array of shape (num_samples, num_classes) with binary labels (0 or 1).
+    Returns:
+        weights: torch tensor of shape (num_classes,) with weights for each class.
+    """
+    num_samples, num_classes = matrix.shape
+    positives = matrix.sum(axis=0)
+    # evita divisioni per zero
+    positives = np.clip(positives, a_min=1, a_max=None)
+    pos_weights = (num_samples - positives) / positives
+    return pos_weights
+
+
+def compute_binary_pos_weight(column: np.ndarray) -> np.ndarray:
+    """
+    Compute positive class weight for imbalanced binary classification.
+    Args:
+        column: numpy array of shape (num_samples,) with binary class labels (0 or 1).
+    Returns:
+        weight: float, weight for the positive class.
+    """
+    positives = np.sum(column == 1)
+    negatives = np.sum(column == 0)
+    # evita divisioni per zero
+    positives = max(positives, 1)
+    pos_weight = negatives / positives
+    return min(pos_weight, 10.0)  # limita il peso massimo a 10.0
+
+
+def compute_loss_weights(
+    dataset: Dataset,
+    classification_columns: list[str],
+    binary_classification_columns: list[str],
+    multiple_choice_columns: list[str],
+    num_classes_dict: dict[str, int],
+    device: torch.device | None = None,
+) -> dict[str, dict[str, torch.Tensor]]:
+    """
+    Compute loss weights for each field, aligned with PyTorch losses.
+    """
+    weights = dict()
+
+    # Multiclass classification → CrossEntropyLoss(weight=...)
+    for f in classification_columns:
+        column = np.array(dataset[f])
+        weights[f] = {
+            "type": "cross_entropy",
+            "weight": torch.tensor(compute_classification_weights(column, num_classes_dict[f]), device=device, dtype=torch.float)
+        }
+
+    # Binary classification → BCEWithLogitsLoss(pos_weight=...)
+    for f in binary_classification_columns:
+        column = np.array(dataset[f])
+        weights[f] = {
+            "type": "binary_bce",
+            "pos_weight": torch.tensor(compute_binary_pos_weight(column), device=device, dtype=torch.float)
+        }
+
+    # Multilabel → BCEWithLogitsLoss(pos_weight=...)
+    for f in multiple_choice_columns:
+        matrix = np.array(dataset[f])
+        weights[f] = {
+            "type": "multilabel_bce",
+            "pos_weight": torch.tensor(compute_multilabel_pos_weights(matrix), device=device, dtype=torch.float)
+        }
+    return weights
+

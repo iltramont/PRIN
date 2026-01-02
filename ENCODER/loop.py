@@ -10,6 +10,7 @@ from datasets import Dataset
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
 
+from train_utils import compute_loss_weights
 from constants import SEED
 
 
@@ -22,6 +23,7 @@ def get_loss(
     multiple_choice_fields: list[str],
     binary_classification_fields: list[str],
     loss_dict: dict[str, list[float]],
+    loss_weights: dict[str, dict[str, torch.Tensor]],
     alpha_nan: float = 1.0,
 ) -> None | torch.Tensor:
     """
@@ -61,7 +63,8 @@ def get_loss(
     # ===========================
     elif field in classification_fields:
         target = batch[field].long().to(device)
-        loss = F.cross_entropy(pred, target)
+        
+        loss = F.cross_entropy(pred, target, weight=loss_weights[field]['weight'])
         loss_dict[field].append(loss.item())
         return loss
     # =======================
@@ -69,7 +72,7 @@ def get_loss(
     # =======================
     elif field in binary_classification_fields:
         target = batch[field].float().to(device)
-        loss = F.binary_cross_entropy_with_logits(pred.squeeze(-1), target)
+        loss = F.binary_cross_entropy_with_logits(pred.squeeze(-1), target, pos_weight=loss_weights[field]['pos_weight'])
         loss_dict[field].append(loss.item())
         return loss
     # =============================
@@ -77,7 +80,7 @@ def get_loss(
     # =============================
     elif field in multiple_choice_fields:
         target = batch[field].float().to(device)
-        loss = F.binary_cross_entropy_with_logits(pred, target)
+        loss = F.binary_cross_entropy_with_logits(pred, target, pos_weight=loss_weights[field]['pos_weight'])
         loss_dict[field].append(loss.item())
         return loss
     # ==================
@@ -88,7 +91,7 @@ def get_loss(
         return None
     
 
-def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
+def evaluate(model, dataset: Dataset, batch_size: int, loss_weights: dict[str, dict[str, torch.Tensor]], verbose: int = 1):
     """Evaluation loop: calcola la loss media e altre metriche"""
     dataloader_eval = DataLoader(dataset, batch_size=batch_size, shuffle=False, generator=torch.Generator().manual_seed(SEED))
     device = next(model.parameters()).device
@@ -125,6 +128,7 @@ def evaluate(model, dataset: Dataset, batch_size: int, verbose: int = 1):
                     multiple_choice_fields=model.multiple_choice_fields,
                     binary_classification_fields=model.binary_classification_fields,
                     loss_dict=batch_loss_dict,
+                    loss_weights=loss_weights,
                     alpha_nan=1.0
                 )
                 if field_loss is not None:
@@ -163,7 +167,7 @@ def train(model,
     - batch_size: dimensione batch
     - lr: learning rate
     """
-
+    
     if wandb_dict is not None:
         wandb.login()
         run = wandb.init(
@@ -181,6 +185,14 @@ def train(model,
     dataloader_train = DataLoader(dataset_train, batch_size=batch_size, shuffle=True, generator=torch.Generator().manual_seed(SEED))
     #optimizer = Adam(model.parameters(), lr=lr)
     optimizer = AdamW(model.parameters(), lr=lr, weight_decay=0.01)
+    
+    # Compute loss weights for imbalanced dataset
+    loss_weights = compute_loss_weights(dataset_train,
+                                        classification_columns=model.classification_fields,
+                                        binary_classification_columns=model.binary_classification_fields,
+                                        multiple_choice_columns=model.multiple_choice_fields,
+                                        num_classes_dict=model.num_classes,
+                                        device=device)
 
     loss_lists = {'train': [] , 'validation': []}
     
@@ -217,6 +229,7 @@ def train(model,
                     multiple_choice_fields=model.multiple_choice_fields,
                     binary_classification_fields=model.binary_classification_fields,
                     loss_dict=batch_loss_dict,
+                    loss_weights=loss_weights,
                     alpha_nan=1.0
                 )
                 if field_loss is not None:
@@ -226,7 +239,7 @@ def train(model,
             # Backpropagation
             optimizer.zero_grad()
             batch_loss.backward()
-            #torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
 
             # Aumenta epoch loss con batch loss
@@ -246,7 +259,7 @@ def train(model,
         loss_lists['train'].append(epoch_loss_dict)
         print(f"Epoch {epoch+1}/{epochs} - Training loss: {epoch_loss_dict['epoch']:.4f}")
         if dataset_validation is not None:
-            eval_loss_dict = evaluate(model, dataset_validation, batch_size_val, verbose)
+            eval_loss_dict = evaluate(model, dataset_validation, batch_size_val, loss_weights, verbose)
             if wandb_dict is not None:
                 for f, l in eval_loss_dict.items():
                     if f != 'epoch':

@@ -15,7 +15,7 @@ plt.style.use('ggplot')
 TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.2
 RANDOM_STATE = 2025
-DATA_FILE_NAME = "base.tumoreprimitivo.csv"
+DATA_FILE_NAME = "base.tumoreprimitivo_finale.csv"
 
 TRAIN_SPLIT_FILE_NAME = 'train_split.csv'
 TEST_SPLIT_FILE_NAME = 'test_split.csv'

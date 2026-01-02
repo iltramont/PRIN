@@ -81,16 +81,16 @@ class Metastasi(str, Enum):
 class Annotations(BaseModel):
     morfologia: Optional[Morfologia]
     posizione: List[Posizione]
-    ore_inizio: Optional[int]
-    ore_inizio_is_nan: bool
-    ore_fine: Optional[int]
-    ore_fine_is_nan: bool
-    spessore_parietale: Optional[int]
-    spessore_parietale_is_nan: bool
-    estensione_cranio_caudale: Optional[int]
-    estensione_cranio_caudale_is_nan: bool
-    distanza_oai: Optional[float]
-    distanza_oai_is_nan: bool
+    #ore_inizio: Optional[int]
+    #ore_inizio_is_nan: bool
+    #ore_fine: Optional[int]
+    #ore_fine_is_nan: bool
+    #spessore_parietale: Optional[int]
+    #spessore_parietale_is_nan: bool
+    #estensione_cranio_caudale: Optional[int]
+    #estensione_cranio_caudale_is_nan: bool
+    #distanza_oai: Optional[float]
+    #distanza_oai_is_nan: bool
     riflessione_peritoneale_anteriore: Optional[RiflessionePeritonealeAnteriore]
     infiltrazione_tessuto_adiposo: Optional[InfiltrazioneTessutoAdiposo]
     infiltrazione_sfinteri: Optional[SiNo]
@@ -98,11 +98,12 @@ class Annotations(BaseModel):
     infiltrazione_organi_dettagli: List[InfiltrazioneOrganiDettagli]
     coinvolgimento_riflessione_peritoneale: Optional[SiNo]
     coinvolgimento_fascia_mesorettale: Optional[SiNo]
-    linfonodi_sospetti: Optional[int]
-    numero_linfonodi_non_conosciuto: bool
+    #linfonodi_sospetti: Optional[int]
+    #numero_linfonodi_non_conosciuto: bool
     sedi_linfonodi: List[SediLinfonodi]
     depositi_tumorali: Optional[SiNoSospetto]
-    numero_depositi: Optional[int]
+    #numero_depositi: Optional[int]
+    #numero_depositi_is_nan: bool
     emvi_esteso: Optional[SiNo]
     stadio_T: Optional[StadioT]
     stadio_N: Optional[StadioN]

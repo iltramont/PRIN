@@ -19,7 +19,7 @@ import math
 base_dir = Path.cwd()
 matplotlib.use("QtAgg")
 # Parameters
-SPLIT = 'validation'
+SPLIT = 'test'
 
 
 with open(base_dir / "ENCODER" / "results.json", "r") as f:
@@ -63,7 +63,10 @@ df = []
 for i, field in enumerate(bin_fields):
     predicted = np.array(results[SPLIT]['predicted'][field])
     actual = np.array(results[SPLIT]['actual'][field])
-    m, cm = metric_utils.metrics_binary(actual, predicted, plot=False, field_name=field)
+    best_threshold = metric_utils.get_best_threshold_binary(np.array(results['validation']['actual'][field]),
+                                                            np.array(results['validation']['predicted'][field]))
+    print(f"Best threshold for field {field}: {best_threshold}")
+    m, cm = metric_utils.metrics_binary(actual, predicted, plot=False, field_name=field, threshold=best_threshold)
     df.append(pd.Series(m, name=field))
     
     # PLot confusion matrix
@@ -128,7 +131,15 @@ df = []
 for field in multi_fields:
     predicted = np.array(results[SPLIT]['predicted'][field])
     actual = np.array(results[SPLIT]['actual'][field])
-    m, cms = metric_utils.metrics_multilabel(actual, predicted, plot=False, field_name=field, id_to_label_dict=results['info']['label_to_id_map'][field]['id_to_label'])
+    best_thresholds = metric_utils.get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]),
+                                                                  np.array(results['validation']['predicted'][field]))
+    print(f"Best thresholds for field {field}: {best_thresholds}")
+    m, cms = metric_utils.metrics_multilabel(actual,
+                                             predicted,
+                                             thresholds=best_thresholds,
+                                             plot=False,
+                                             field_name=field,
+                                             id_to_label_dict=results['info']['label_to_id_map'][field]['id_to_label'])
     df.append(pd.Series(m, name=field))
     # PLot confusion matrix
     n_cols = 3

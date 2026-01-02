@@ -51,13 +51,13 @@ VALIDATION_FILE_NAME = "validation_split.csv"
 # Model parameters
 CHECKPOINT = BIOBERT_ITALIAN_ENCODER
 DROPOUT_RATE = 0.2
-ADD_COMMON_LAYER = False
+ADD_COMMON_LAYER = True
 # Training parameters
-N_EPOCHS = 50
+N_EPOCHS = 30
 BATCH_SIZE = 4
 BATCH_SIZE_VALIDATION = 4
-LEARNING_RATE = 1e-4
-ONLY_HEADS = True
+LEARNING_RATE = 1e-5
+ONLY_HEADS = False
 
 
 #######
@@ -163,6 +163,15 @@ print(dataset)
 if ONLY_HEADS:
     for param in model.encoder.parameters():
         param.requires_grad = False
+else:
+    for name, param in model.encoder.named_parameters():
+        #if "layer.10" in name or "layer.11" in name:
+        if "layer.11" in name:
+            param.requires_grad = True
+        else:
+            param.requires_grad = False
+
+
 # Visualize trainable parameters
 model_parameters_info(model)
 # Set logging dict for WandB
@@ -191,8 +200,8 @@ tracking = loop.train(
     lr=LEARNING_RATE,
     verbose=1,
     batch_size_val=BATCH_SIZE_VALIDATION,
-    #wandb_dict=wandb_dict
-    wandb_dict=None
+    wandb_dict=wandb_dict
+    #wandb_dict=None
 )
 
 
@@ -207,8 +216,8 @@ df = pd.concat([df_1, df_2])
 sns.lineplot(data=df, x=df.index, y='epoch', hue='split')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
-
-plt.show()
+if True:
+    plt.show()
 
 
 ############

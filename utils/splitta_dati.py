@@ -24,7 +24,7 @@ DATA_FILE_NAME = "tumoreprimitivo_clean.csv"
 TRAIN_SPLIT_FILE_NAME = 'train_split'
 TEST_SPLIT_FILE_NAME = 'test_split'
 VALIDATION_SPLIT_FILE_NAME = 'validation_split'
-ONLY_GUIDO = True
+ONLY_GUIDO = False
 SAVE_DATA = True
 
 REPORT__COLUMN_NAME = 'report_text'
