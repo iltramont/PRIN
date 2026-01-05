@@ -36,7 +36,7 @@ class SediLinfonodi(str, Enum):
 class RiflessionePeritonealeAnteriore(str, Enum):
     Sotto = "sotto"
     Cavallo = "cavallo"
-    Sopra = "sopra"
+    #Sopra = "sopra"
 
 class InfiltrazioneTessutoAdiposo(str, Enum):      
     No = "no"

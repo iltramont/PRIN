@@ -24,10 +24,11 @@ DATA_FILE_NAME = "tumoreprimitivo_clean.csv"
 TRAIN_SPLIT_FILE_NAME = 'train_split'
 TEST_SPLIT_FILE_NAME = 'test_split'
 VALIDATION_SPLIT_FILE_NAME = 'validation_split'
-ONLY_GUIDO = False
+ONLY_GUIDO = True
 SAVE_DATA = True
 
 REPORT__COLUMN_NAME = 'report_text'
+ANNOTATOR_COLUMN_NAME = 'profile'
 STRATIFY_COLUMNS = (
     'morfologia',
     'infiltrazione_sfinteri',
@@ -74,9 +75,9 @@ print(f'{data_pietro.shape = }')
 # Splitting
 ###########
 if ONLY_GUIDO:
-    X = data_guido[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
+    X = data_guido[[REPORT__COLUMN_NAME, ANNOTATOR_COLUMN_NAME] + target_columns].copy(deep=True)
 else:
-    X = data[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True) 
+    X = data[[REPORT__COLUMN_NAME, ANNOTATOR_COLUMN_NAME] + target_columns].copy(deep=True) 
 print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
 # Create dummies to stratify (train - test)
 encoder = OneHotEncoder(sparse_output=False)
@@ -94,7 +95,7 @@ X_test = X.iloc[index_test].copy(deep=True)
 
 if ONLY_GUIDO:
     # Use data_pietro for validation
-    X_validation = data_pietro[[REPORT__COLUMN_NAME] + target_columns].copy(deep=True)
+    X_validation = data_pietro[[REPORT__COLUMN_NAME, ANNOTATOR_COLUMN_NAME] + target_columns].copy(deep=True)
     n_validation = int(X.shape[0] * VALIDATION_SIZE)
     X_validation = X_validation.iloc[:n_validation, :]
 else:
