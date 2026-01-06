@@ -13,12 +13,12 @@ from model_utils import (get_regression_fields,
                         create_label_to_id_map
                     )
 from pydantic import BaseModel
-from constants import Annotations, BERT_ENCODER_CHECKPOINT, XLM_ROBERTA_ENCODER_CHECKPOINT
+from constants import AnnotationsReduced, BERT_ENCODER_CHECKPOINT, XLM_ROBERTA_ENCODER_CHECKPOINT
 
 
 class ReportExtractor(nn.Module):
     def __init__(self, checkpoint=BERT_ENCODER_CHECKPOINT,
-                 annotations_model: type[BaseModel] = Annotations,
+                 annotations_model: type[BaseModel] = AnnotationsReduced,
                  embedding_type: str = "mean_pooling",  # "cls", "pooler", "mean_pooling"
                  add_common_layer: bool = True,
                  dropout_rate: float = 0.2,
@@ -159,7 +159,7 @@ class ReportExtractor(nn.Module):
         }, os.path.join(save_directory, "report_extractor_trained.pt"))
 
     @classmethod
-    def from_pretrained(cls, load_directory: str, annotations_model: type[BaseModel] = Annotations, device="cpu"):
+    def from_pretrained(cls, load_directory: str, annotations_model: type[BaseModel] = AnnotationsReduced, device="cpu"):
         """Ricarica encoder HuggingFace + heads custom"""
         # Carica encoder HuggingFace
         encoder = AutoModel.from_pretrained(load_directory)

@@ -14,6 +14,7 @@ from datasets import DatasetDict
 
 import loop
 from constants import (SEED,
+                       NAN_VALUE,
                        BERT_ENCODER_CHECKPOINT,
                        XLM_ROBERTA_ENCODER_CHECKPOINT,
                        XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT,
@@ -46,20 +47,21 @@ torch.backends.cudnn.benchmark = False
 # Parameters
 ############
 # Data parameters
-TRAIN_FILE_NAME = "train_split.csv"
-VALIDATION_FILE_NAME = "validation_split.csv"
-DATASET_TIPE = "Total"
+TRAIN_FILE_NAME = "train_split_reduced.csv"
+VALIDATION_FILE_NAME = "validation_split_reduced.csv"
+TEST_FILE_NAME = "test_split_reduced.csv"
+DATASET_TIPE = "Total reduced"
 # Model parameters
 CHECKPOINT = BIOBERT_ITALIAN_ENCODER
-DROPOUT_RATE = 0.3
+DROPOUT_RATE = 0.2
 ADD_COMMON_LAYER = True
 # Training parameters
 N_EPOCHS = 40
 BATCH_SIZE = 8
 BATCH_SIZE_VALIDATION = 4
-LEARNING_RATE_HEADS = 1e-4
-LEARNING_RATE_ENCODER = 1e-7
-ONLY_HEADS = False
+LEARNING_RATE_HEADS = 1e-5
+LEARNING_RATE_ENCODER = 1e-9
+ONLY_HEADS = True
 EXCLUDE_LONG_REPORTS = False  # if False, truncates long reports
 EMBEDDING_TYPE = "mean_pooling"  # "cls", "pooler", "mean_pooling"
 
@@ -88,7 +90,7 @@ file_names = {
 }
 paths = {split: base_dir / "data" / file_name
          for split, file_name in file_names.items()}
-data = {split: pd.read_csv(path) for split, path in paths.items()}
+data = {split: pd.read_csv(path).fillna(NAN_VALUE) for split, path in paths.items()}
 train_data, validation_data = data['train'], data['validation']
 # Log
 print(f"{len(train_data) = }")
@@ -176,11 +178,13 @@ else:
         if any(f"layer.{i}." in name for i in [8,9,10,11]):
             param.requires_grad = True
         else:
-            param.requires_grad = False
-
-        
+            param.requires_grad = False     
+    
+    
+            
 # Visualize trainable parameters
 model_parameters_info(model)
+
 # Set logging dict for WandB
 wandb_dict = {
     'entity': "luca-tramonti-PRIN",
@@ -211,8 +215,8 @@ tracking = loop.train(
     lr_encoder=LEARNING_RATE_ENCODER,
     verbose=1,
     batch_size_val=BATCH_SIZE_VALIDATION,
-    wandb_dict=wandb_dict
-    #wandb_dict=None
+    #wandb_dict=wandb_dict
+    wandb_dict=None
 )
 
 
@@ -243,13 +247,6 @@ if True:
 ########################################################################
 from torch.utils.data import DataLoader
 import json
-############
-# Parameters
-############
-# Data parameters
-VALIDATION_FILE_NAME = "validation_split.csv"
-TEST_FILE_NAME = "test_split.csv"
-
 
 #############
 # Preliminari
@@ -277,7 +274,7 @@ file_names = {
 }
 paths = {split: base_dir / "data" / file_name
          for split, file_name in file_names.items()}
-data = {split: pd.read_csv(path) for split, path in paths.items()}
+data = {split: pd.read_csv(path).fillna(NAN_VALUE) for split, path in paths.items()}
 validation_data, test_data = data['validation'], data['test']
 # Log
 print(f"{len(validation_data) = }")
@@ -289,21 +286,22 @@ for split, df in data.items():
 annotated_reports =  {split: create_list_of_annotated_reports(data[split]) for split in file_names}
 # Check the maximum number of tokens for each report
 print('model context length:', model.encoder.config.max_position_embeddings)
-for split in annotated_reports:
-    print(f'{split}: {len(annotated_reports[split])} reports')
-    max_n_tokens = 0
-    del_list = []
-    for i, report in enumerate(annotated_reports[split]):
-        x = tokenizer(report.report_text, return_tensors='pt')['input_ids'].shape[1]
-        max_n_tokens = max(max_n_tokens, x)
-        if x > model.encoder.config.max_position_embeddings:
-            del_list.append(i)
-    print(del_list)
-    print(f'{max_n_tokens = }')
-    # Delete long reports
-    for i in del_list[::-1]:
-        annotated_reports[split].pop(i)
-    print(f'After deletion: {len(annotated_reports[split])} reports')
+if EXCLUDE_LONG_REPORTS:
+    for split in annotated_reports:
+        print(f'{split}: {len(annotated_reports[split])} reports')
+        max_n_tokens = 0
+        del_list = []
+        for i, report in enumerate(annotated_reports[split]):
+            x = tokenizer(report.report_text, return_tensors='pt')['input_ids'].shape[1]
+            max_n_tokens = max(max_n_tokens, x)
+            if x > model.encoder.config.max_position_embeddings:
+                del_list.append(i)
+        print(del_list)
+        print(f'{max_n_tokens = }')
+        # Delete long reports
+        for i in del_list[::-1]:
+            annotated_reports[split].pop(i)
+        print(f'After deletion: {len(annotated_reports[split])} reports')
     
     
 ##############################
@@ -315,7 +313,10 @@ dataset = DatasetDict({
 })
 # Tokenize text and set format to torch
 def tokenize_function(examples):
-    return tokenizer(examples['text'], padding="longest", max_length=model.encoder.config.max_position_embeddings)
+    return tokenizer(examples['text'],
+                     truncation=True,
+                     padding="max_length",
+                     max_length=model.encoder.config.max_position_embeddings)
 dataset = dataset.map(tokenize_function, batched=True)
 cols_to_remove = [col for col in ["token_type_ids"] if col in dataset['validation'].column_names]
 dataset = dataset.remove_columns(cols_to_remove)
@@ -384,7 +385,7 @@ results['info'] = {
 ##############
 # Save results
 ##############
-save_path = base_dir / "ENCODER" / "results.json"
+save_path = base_dir / "ENCODER_CAMPI_RIDOTTI" / "results.json"
 with open(save_path, "w") as f:
     json.dump(results, f, indent=4)
 print(f"Results saved to {save_path}")

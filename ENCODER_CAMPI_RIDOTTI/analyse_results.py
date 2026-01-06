@@ -19,10 +19,10 @@ import math
 base_dir = Path.cwd()
 matplotlib.use("QtAgg")
 # Parameters
-SPLIT = 'test'
+SPLIT = 'validation'
 
 
-with open(base_dir / "ENCODER" / "results.json", "r") as f:
+with open(base_dir / "ENCODER_CAMPI_RIDOTTI" / "results.json", "r") as f:
     results = json.load(f)
 
 for field, d in results['info']['label_to_id_map'].items():

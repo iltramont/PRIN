@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import DataLoader
-from torch.optim import Adam, AdamW
 import torch.nn.functional as F
 import wandb
 
@@ -8,7 +7,6 @@ import wandb
 from datasets import Dataset
 
 from tqdm import tqdm
-from sklearn.metrics import accuracy_score, mean_absolute_error, r2_score, f1_score, precision_score, recall_score
 
 from train_utils import compute_loss_weights
 from constants import SEED
@@ -92,8 +90,14 @@ def get_loss(
         return None
     
 
-def evaluate(model, dataset: Dataset, batch_size: int, loss_weights: dict[str, dict[str, torch.Tensor]], verbose: int = 1):
-    """Evaluation loop: calcola la loss media e altre metriche"""
+def evaluate(model,
+             dataset: Dataset,
+             batch_size: int,
+             loss_weights: dict[str, dict[str, torch.Tensor]],
+             verbose: int = 1):
+    """
+    Evaluation loop: calcola la loss media e altre metriche
+    """
     dataloader_eval = DataLoader(dataset, batch_size=batch_size, shuffle=False, generator=torch.Generator().manual_seed(SEED))
     device = next(model.parameters()).device
     model.eval()
