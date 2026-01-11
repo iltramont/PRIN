@@ -21,7 +21,7 @@ matplotlib.use("QtAgg")
 SPLIT = 'validation'
 
 
-with open(base_dir / "BASELINE_RESULTS" / "results_baseline.json", "r") as f:
+with open(base_dir / "BASELINE_RESULTS" / "results_baseline_stratified.json", "r") as f:
     results = json.load(f)
 
 for field, d in results['info']['label_to_id_map'].items():
@@ -84,7 +84,7 @@ for idx in range(len(bin_fields), n_rows*n_cols):
     c = idx % n_cols
     axes[r, c].axis("off")
 
-#plt.show()
+plt.show()
 print(df_binary)
 
 
@@ -125,7 +125,7 @@ for idx in range(len(clas_fields), n_rows*n_cols):
     c = idx % n_cols
     axes[r, c].axis("off")
 
-#plt.show()
+plt.show()
 print(df_classification)
 
 
@@ -168,11 +168,13 @@ for field in multi_fields:
         c = idx % n_cols
         axes[r, c].axis("off")
     fig.suptitle(field, fontsize="xx-large")
-    #plt.show()
+    plt.show()
 df_multilabel = pd.DataFrame(df)
 print(df_multilabel)
 
-total = pd.concat([df_binary, df_classification, df_multilabel])
-total.to_csv(base_dir / "BASELINE_RESULTS" / 'baseline_random_equal_metrics.csv')
 
-#TODO dummyclassifier
+######
+# Save
+######
+total = pd.concat([df_binary, df_classification, df_multilabel])
+total.to_csv(base_dir / "BASELINE_RESULTS" / 'baseline_stratified_metrics.csv')
