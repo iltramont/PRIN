@@ -60,8 +60,8 @@ N_EPOCHS = 40
 BATCH_SIZE = 8
 BATCH_SIZE_VALIDATION = 4
 LEARNING_RATE_HEADS = 1e-5
-LEARNING_RATE_ENCODER = 1e-9
-ONLY_HEADS = True
+LEARNING_RATE_ENCODER = 1e-7
+ONLY_HEADS = False
 EXCLUDE_LONG_REPORTS = False  # if False, truncates long reports
 EMBEDDING_TYPE = "mean_pooling"  # "cls", "pooler", "mean_pooling"
 
@@ -215,8 +215,8 @@ tracking = loop.train(
     lr_encoder=LEARNING_RATE_ENCODER,
     verbose=1,
     batch_size_val=BATCH_SIZE_VALIDATION,
-    #wandb_dict=wandb_dict
-    wandb_dict=None
+    wandb_dict=wandb_dict
+    #wandb_dict=None
 )
 
 
@@ -385,7 +385,7 @@ results['info'] = {
 ##############
 # Save results
 ##############
-save_path = base_dir / "ENCODER_CAMPI_RIDOTTI" / "results.json"
+save_path = base_dir / "ENCODER_CAMPI_RIDOTTI" / "results_total.json"
 with open(save_path, "w") as f:
     json.dump(results, f, indent=4)
 print(f"Results saved to {save_path}")

@@ -18,15 +18,18 @@ def metrics_binary(y_true, pred_prob, threshold=0.5, plot=True, field_name=None)
     average_precision = metrics.average_precision_score(y_true, pred_prob)
     precision, recall, thresholds = metrics.precision_recall_curve(y_true, pred_prob)
     results = {
-           'precision score': precision_score,
-           'recall score': recall_score,
-           'accuracy score': acc,
-           'balanced accuracy score': bal_acc,
-           'balanced accuracy score adjusted': bal_acc_adj,
-           'roc auc score': roc_auc_score,    
-           'f1 score': f1,    
-           'cohen kappa': cohen_kappa,
-           'average precision': average_precision
+           #'precision score': precision_score,
+           #'recall score': recall_score,
+           #'accuracy score': acc,
+           #'balanced accuracy score': bal_acc,
+           #'balanced accuracy score adjusted': bal_acc_adj,
+           #'roc auc score': roc_auc_score,    
+           'f1': f1,    
+           'f1_macro': metrics.f1_score(y_true, y_pred, average='macro'),
+           'mcc': metrics.matthews_corrcoef(y_true, y_pred)    
+           #'cohen kappa': cohen_kappa,
+           #'average precision': average_precision
+           
     }
     cm = metrics.confusion_matrix(y_true, y_pred)
     if plot:
@@ -60,17 +63,18 @@ def metrics_classification(y_true, pred_prob, id_to_label_dict: dict[int, str], 
     y_pred = pred_prob.argmax(axis=-1)
        
     result = {
-        'accuracy': metrics.accuracy_score(y_true, y_pred),
-        'cohen_kappa': metrics.cohen_kappa_score(y_true, y_pred),
-        'f1_micro': metrics.f1_score(y_true, y_pred, average="micro", zero_division=0.0),
+        #'accuracy': metrics.accuracy_score(y_true, y_pred),
+        #'cohen_kappa': metrics.cohen_kappa_score(y_true, y_pred),
+        #'f1_micro': metrics.f1_score(y_true, y_pred, average="micro", zero_division=0.0),
         'f1_macro': metrics.f1_score(y_true, y_pred, average="macro", zero_division=0.0),
-        'f1_weighted': metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0.0),
-        'precision_micro': metrics.precision_score(y_true, y_pred, average="micro", zero_division=0.0),
-        'precision_macro': metrics.precision_score(y_true, y_pred, average="macro", zero_division=0.0),
-        'precision_weighted': metrics.precision_score(y_true, y_pred, average="weighted", zero_division=0.0),
-        'recall_micro': metrics.recall_score(y_true, y_pred, average="micro", zero_division=0.0),
-        'recall_macro': metrics.recall_score(y_true, y_pred, average="macro", zero_division=0.0),
-        'recall_weighted': metrics.recall_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        'mcc': metrics.matthews_corrcoef(y_true, y_pred)
+        #'f1_weighted': metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        #'precision_micro': metrics.precision_score(y_true, y_pred, average="micro", zero_division=0.0),
+        #'precision_macro': metrics.precision_score(y_true, y_pred, average="macro", zero_division=0.0),
+        #'precision_weighted': metrics.precision_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        #'recall_micro': metrics.recall_score(y_true, y_pred, average="micro", zero_division=0.0),
+        #'recall_macro': metrics.recall_score(y_true, y_pred, average="macro", zero_division=0.0),
+        #'recall_weighted': metrics.recall_score(y_true, y_pred, average="weighted", zero_division=0.0),
     }
     cm = metrics.confusion_matrix(y_true, y_pred, labels=list(id_to_label_dict.keys()))
     if plot:
@@ -169,16 +173,16 @@ def metrics_multilabel(y_true: np.ndarray, pred_prob: np.ndarray,
 
     labels = list(id_to_label_dict.values())
     result = {
-        'exact_match_acc': (y_pred == y_true).all(axis=1).mean(),
-        'hamming_loss': metrics.hamming_loss(y_true, y_pred),  # Lower is better
-        'f1_micro': metrics.f1_score(y_true, y_pred, average="micro", zero_division=0.0),
+        #'exact_match_acc': (y_pred == y_true).all(axis=1).mean(),
+        #'hamming_loss': metrics.hamming_loss(y_true, y_pred),  # Lower is better
+        #'f1_micro': metrics.f1_score(y_true, y_pred, average="micro", zero_division=0.0),
         'f1_macro': metrics.f1_score(y_true, y_pred, average="macro", zero_division=0.0),
-        'f1_weighted': metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        #'f1_weighted': metrics.f1_score(y_true, y_pred, average="weighted", zero_division=0.0),
         'f1_samples': metrics.f1_score(y_true, y_pred, average="samples", zero_division=0.0),
-        'jaccard_micro': metrics.jaccard_score(y_true, y_pred, average="micro", zero_division=0.0),
-        'jaccard_macro': metrics.jaccard_score(y_true, y_pred, average="macro", zero_division=0.0),
-        'jaccard_weighted': metrics.jaccard_score(y_true, y_pred, average="weighted", zero_division=0.0),
-        'jaccard_samples': metrics.jaccard_score(y_true, y_pred, average="samples", zero_division=0.0)
+        #'jaccard_micro': metrics.jaccard_score(y_true, y_pred, average="micro", zero_division=0.0),
+        #'jaccard_macro': metrics.jaccard_score(y_true, y_pred, average="macro", zero_division=0.0),
+        #'jaccard_weighted': metrics.jaccard_score(y_true, y_pred, average="weighted", zero_division=0.0),
+        #'jaccard_samples': metrics.jaccard_score(y_true, y_pred, average="samples", zero_division=0.0)
     }
     cms = metrics.multilabel_confusion_matrix(y_true, y_pred)
     # --- Plot ---

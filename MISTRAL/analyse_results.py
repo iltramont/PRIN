@@ -6,7 +6,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib
 from pprint import pprint
-import metric_utils
+import ENCODER_CAMPI_RIDOTTI.metric_utils as metric_utils
 from sklearn.metrics import ConfusionMatrixDisplay
 import seaborn as sns
 import math
@@ -19,10 +19,10 @@ import math
 base_dir = Path.cwd()
 matplotlib.use("QtAgg")
 # Parameters
-SPLIT = 'validation'
+SPLIT = 'test'
 
 
-with open(base_dir / 'MISTRAL' / "results_mistral_30.json", "r") as f:
+with open(base_dir / 'MISTRAL' / "results_mistral_20.json", "r") as f:
     results = json.load(f)
 
 for field, d in results['info']['label_to_id_map'].items():
@@ -165,4 +165,4 @@ df_multilabel = pd.DataFrame(df)
 
 total = pd.concat([df_binary, df_classification, df_multilabel])
 print(total)
-total.to_csv(base_dir / "MISTRAL" / f'mistral_30_metrics_{SPLIT}.csv')
+total.to_csv(base_dir / "MISTRAL" / f'mistral_20_metrics_{SPLIT}.csv')
