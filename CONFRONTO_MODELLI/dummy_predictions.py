@@ -46,7 +46,12 @@ for split, path in paths.items():
     data[split] = pd.read_csv(path).fillna(NAN_VALUE)
 
 train_data, validation_data, test_data = data['train'], data['validation'], data['test']
-total_data = pd.concat([train_data, validation_data, test_data], ignore_index=True)
+
+split_to_data = {
+    'train': train_data,
+    'validation': validation_data,
+    'test': test_data
+}
 
 print(f"{len(train_data) = }")
 print(f"{len(validation_data) = }")
@@ -122,7 +127,7 @@ results_most_frequent = {
 
 for split in ['train', 'validation', 'test']:
     # Save actual labels
-    for _, row in validation_data.iterrows():
+    for _, row in split_to_data[split].iterrows():
         save_actual_row(results_most_frequent,
                         split,
                         row,
@@ -188,7 +193,7 @@ results_uniform = {
 
 for split in ['train', 'validation', 'test']:
     # Save actual labels
-    for _, row in validation_data.iterrows():
+    for _, row in split_to_data[split].iterrows():
         save_actual_row(results_uniform,
                         split,
                         row,
@@ -253,7 +258,7 @@ results_stratified = {
 
 for split in ['train', 'validation', 'test']:
     # Save actual labels
-    for _, row in validation_data.iterrows():
+    for _, row in split_to_data[split].iterrows():
         save_actual_row(results_stratified,
                         split,
                         row,

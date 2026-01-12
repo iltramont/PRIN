@@ -22,7 +22,7 @@ matplotlib.use("QtAgg")
 SPLIT = 'validation'
 
 
-with open(base_dir / "results_mistral.json", "r") as f:
+with open(base_dir / 'MISTRAL' / "results_mistral_30.json", "r") as f:
     results = json.load(f)
 
 for field, d in results['info']['label_to_id_map'].items():
@@ -78,14 +78,13 @@ for i, field in enumerate(bin_fields):
     ax.set_title(field)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("Actual")
-df = pd.DataFrame(df)
+df_binary = pd.DataFrame(df)
 
 for idx in range(len(bin_fields), n_rows*n_cols):
     r = idx // n_cols
     c = idx % n_cols
     axes[r, c].axis("off")
 
-plt.show()
 
 
 ################
@@ -113,7 +112,7 @@ for i, field in enumerate(clas_fields):
     ax.set_title(field)
     ax.set_xlabel("Predicted")
     ax.set_ylabel("Actual")
-df = pd.DataFrame(df)
+df_classification = pd.DataFrame(df)
 
 for idx in range(len(clas_fields), n_rows*n_cols):
     r = idx // n_cols
@@ -161,5 +160,9 @@ for field in multi_fields:
         c = idx % n_cols
         axes[r, c].axis("off")
     fig.suptitle(field, fontsize="xx-large")
-    plt.show()
-df = pd.DataFrame(df)
+df_multilabel = pd.DataFrame(df)
+
+
+total = pd.concat([df_binary, df_classification, df_multilabel])
+print(total)
+total.to_csv(base_dir / "MISTRAL" / f'mistral_30_metrics_{SPLIT}.csv')
