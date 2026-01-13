@@ -83,22 +83,23 @@ print(f'\nRighe doppie eliminate\n{data.shape = }\n')
 # Sostituiamo valore -1 con 0 per la colonna numero depositi
 data.loc[data['numero_depositi'] == -1.0, 'numero_depositi'] = 0.0
 
-# Eliminiamo con combinazioni di valori incompatibili
-data.drop(
-    index=data[
-        (data['linfonodi_sospetti'] == 0) &
-        (data['numero_linfonodi_non_conosciuto'] == False) &
-        (data['sedi_locoregionali'] != '[]')
-        ].index
-    , inplace=True)
-data.reset_index(inplace=True, drop=True)
-print(f'\nRighe con valori incompatibili eliminate\n{data.shape = }\n')
+# Valoriziamo numero_linfonodi_non_conosciuto
+data.loc[
+    (data['linfonodi_sospetti'] == 0) &
+    (data['numero_linfonodi_non_conosciuto'] == False) &
+    (data['sedi_locoregionali'] != '[]')
+    , 'numero_linfonodi_non_conosciuto'
+    ] = True
+        
+        
+# Sostituiamo i valore con None nella colonna dei dettagli degli organi coinvolti pechè altri valori non sono compatibili
+# con "no" nella colonna infiltrazione_organi_extra.
+data.loc[
+    (data['infiltrazione_organi_dettagli'] > '') &
+    (data['infiltrazione_organi_extra'] == 'no')
+    , 'infiltrazione_organi_dettagli'
+    ] = None
 
-# Sostituiamo i valore con None nella colonna dei dettagli degli organi coinvolti
-# pechè altri valori non sono compatibili con "no" nella colonna infiltrazione_organi_extra
-for i in range(data.shape[0]):
-    if (data.loc[i, 'infiltrazione_organi_extra'] == 'no') and (data.loc[i, 'infiltrazione_organi_dettagli'] is not None):
-        data.loc[i, 'infiltrazione_organi_dettagli'] = None
 
 # creazione nuova colonna "sedi_linfonodi"
 sedi_linfonodi = []
