@@ -1,0 +1,65 @@
+Note successive alla call del 13/01/2026
+
+# Stadio T non valorizzato
+df = data_clean[
+    (data_clean['stadio_T'].isna())
+    ][
+         ['id', 'profile', 'infiltrazione_tessuto_adiposo', 'coinvolgimento_riflessione_peritoneale', 'infiltrazione_organi_extra', 'stadio_T']
+    ]
+display(df)
+print(f'id referti con stadio T anomalo= {df["id"].tolist()}')
+
+id referti con stadio T anomalo= [54, 59, 106, 120, 131, 167, 171, 198, 215, 281]
+
+REGOLE stadio T
+Infiltrazione tessuto adiposo mesorettale: 
+•	No -> T1-2 in T delle Conclusioni
+•	Sì <= 5mm -> T3ab in T delle Conclusioni
+•	Sì > 5mm -> T3cd in T delle Conclusioni
+•	Sospetto -> T3ab
+Coinvolgimento riflessione peritoneale/peritoneo
+•	Sì o sospetto -> T4a in T delle Conclusioni (sovrascrive altri valori di T in precedenza indicati)
+Infiltrazione altri organi / strutture extra-mesorettali
+•	Sì o sospetto -> T4b in T delle Conclusioni (sovrascrive altri valori di T in precedenza indicati)
+Infiltrazione sfinteri
+•	Sì Sfintere interno + Piano intersfinterico + Sfintere esterno -> T4b in T delle Conclusioni (sovrascrive altri valori di T in precedenza indicati)
+
+
+# Stadio N non valorizzato o valorizato con "N1c" 
+df = data_clean[
+    (data_clean['stadio_N'].isna()) | (data_clean['stadio_N'] == 'N1c')
+    ][
+        ['id', 'profile', 'linfonodi_sospetti', 'depositi_tumorali', 'numero_depositi', 'stadio_N1c', 'stadio_N']
+    ]
+display(df)
+print(f'id referti con stadio N anomalo= {df["id"].tolist()}')
+
+id referti con stadio N anomalo= [44, 171]
+
+REGOLE stadio N
+numero linfonodi sospetti -> valore N corrispondente delle Conclusioni sulla base della classificazione
+Depositi tumorali mesorettali Sì -> aggiunta di valore N1c al campo N delle Conclusioni
+
+
+
+# EMVI anomalo
+df = data_clean[
+    ((data_clean['emvi'] == '+') & (data_clean['emvi_esteso'] == 'no'))
+    ][
+        ['id', 'profile', 'emvi_esteso', 'emvi']
+    ]
+display(df)
+pprint(f'id referti con EMVI anomalo= {df["id"].tolist()}')
+
+id referti con EMVI anomalo= [129, 130, 131, 132, 133, 134, 140, 185, 187, 189,
+                              192, 193, 200, 204, 205, 330, 331, 332, 335, 336,
+                              337, 338, 347, 348, 351, 352, 358, 360, 361, 368,
+                              369, 370, 372, 373, 374, 376, 382, 384, 387, 388,
+                              389, 393, 396, 397, 398, 401, 403, 410, 411, 418,
+                              419, 420]
+
+REGOLE EMVI
+EMVI sì o sospetto -> EMVI delle Conclusioni sì, altrimenti no
+
+
+
