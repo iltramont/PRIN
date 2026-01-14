@@ -1,5 +1,7 @@
 Note successive alla call del 13/01/2026
 
+Gli standard di annotazione si trova sulle regole ESGAR
+
 # Stadio T non valorizzato
 df = data_clean[
     (data_clean['stadio_T'].isna())
@@ -61,5 +63,13 @@ id referti con EMVI anomalo= [129, 130, 131, 132, 133, 134, 140, 185, 187, 189,
 REGOLE EMVI
 EMVI sì o sospetto -> EMVI delle Conclusioni sì, altrimenti no
 
+
+
+AGGREGAZIONI
+In generale possiamo aggregare NaN con "no" e "-"
+
+- infiltrazione tessuto adiposo: aggrego il sospetto con si_5mm
+- stadio T: Ilaria dice di eventualmente aggregare gli stadi T3, tenendo separati gli stadi T4. Aggrego NaN con T1-2 (ma i NaN dovrebbero risolverli)
+- stadio N: aggrego N1 e N2, oppure lascio solo due classi: N0 e N+
 
 
