@@ -67,9 +67,26 @@ EMVI sì o sospetto -> EMVI delle Conclusioni sì, altrimenti no
 
 AGGREGAZIONI
 In generale possiamo aggregare NaN con "no" e "-"
+- morfologia: va bene così: solido polipoide, solido anulare e mucinoso
+- infiltrazione tessuto adiposo: aggrego il sospetto con si_5mm e il no con il NaN.
+- coinvolgimento fascia mesorettale: aggrego no con NaN e si con rischio. se però MRF è si, NaN diventa si.
+- Carcinosi peritoneale va tolta perchè sono presenti solo no e NaN.
+- riflessione peritoneale anteriore: mantengo le classi NaN, cavallo e sotto
+- coinvolgimento riflessione peritoneale: aggrego no con NaN e si con rischio
+- stadio T: Ilaria dice di eventualmente aggregare gli stadi T3, tenendo separati gli stadi T4.
+- stadio N: aggrego N1a con N1b e N2a con N2b, oppure lascio solo due classi: N0 e N+
+- stadio N1c: non c'è niente da aggregare  (di fatto coincide con il campo depositi tumorali)
+- mrf: tengo solo + e -
+- emvi: aggrego - con NaN
+- Metastasi: aggrego MX con NaN
+- Infiltrazione sfinteri: aggrego no con NaN e tutte le altre categorie le faccio diventare si
+- Infiltrazione organi extra: aggrego no con NaN e sospetto con si
+- linfonodi sospetti: aggrego NaN con 0, ed eventualmente discretizzo in 2 fasce
+- numero linfonodi non conosciuto: va bene così
+- lesioni ossee andra rimossa perchè poco significativa
+- depositi tumorali: aggrego NaN con no e si con sospetto
+- numero depositi: aggrego 0 con NaN ma andrà rimosso perchè troppo sbilanciato
+- Emvi esteso: aggrego si con sospetto ma di fatto coincide con il campo emvi, per cui uno di questi è ridondante
 
-- infiltrazione tessuto adiposo: aggrego il sospetto con si_5mm
-- stadio T: Ilaria dice di eventualmente aggregare gli stadi T3, tenendo separati gli stadi T4. Aggrego NaN con T1-2 (ma i NaN dovrebbero risolverli)
-- stadio N: aggrego N1 e N2, oppure lascio solo due classi: N0 e N+
 
 
