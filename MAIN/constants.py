@@ -3,8 +3,8 @@
 #####################
 
 from pydantic import BaseModel, ConfigDict
-from enum import Enum, Optional
-from typing import List
+from enum import Enum
+from typing import List, Optional
 
 NAN_VALUE = 'NaN'
 SEED = 2026
@@ -13,6 +13,21 @@ BERT_ENCODER_CHECKPOINT = "bert-base-multilingual-cased"
 XLM_ROBERTA_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-base"
 XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-large"
 BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
+
+# File names
+RAW_DATA_FILE_NAME = "base.tumoreprimitivo_finale.csv"
+
+
+# Raw data fields
+REPORT_COLUMN_NAME = "report_text"
+LOW_SIGNIFICANCE_COLUMNS = (
+    'carcinosi_peritoneale',
+    'lesioni_ossee',
+    'numero_depositi',
+    'dimensione_dll',
+    'dimensione_dap'
+)
+
 
 ##################
 # Campi multilabel
@@ -108,14 +123,14 @@ class DepositiTumorali(str, Enum):
     No = "no"
     Si = "si"
 
-#########
-# Modello
-#########
+###########################################
+# Modello completo con anche campi numerici
+###########################################
 class Annotations(BaseModel):
     # Tumore primitivo
     morfologia: Morfologia
-    #ore_inizio: Optional[int]
-    #ore_fine: Optional[int]
+    ore_inizio: Optional[int]
+    ore_fine: Optional[int]
     spessore_parietale: Optional[float]
     estensione_cranio_caudale: Optional[float]
     distanza_oai: Optional[float]
@@ -153,3 +168,43 @@ class AnnotatedReport(BaseModel):
         validate_assignment=True,
     )
     
+
+##############################
+# Modello senza campi numerici
+##############################
+class AnnotationsReduced(BaseModel):
+    # Tumore primitivo
+    morfologia: Morfologia
+    posizione: List[Posizione]
+    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
+    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo
+    infiltrazione_sfinteri: InfiltrazioneSfinteri
+    infiltrazione_organi_extra: InfiltrazioneOrganiExtra
+    infiltrazione_organi_dettagli: List[InfiltrazioneOrganiDettagli]
+    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale
+    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
+    # Linfonodi Sospetti
+    #linfonodi_sospetti: int  # linfonodi sospetti si potrebbe discretizzare e far diventare categorico
+    sedi_linfonodi: List[SediLinfonodi]
+    depositi_tumorali: DepositiTumorali
+    # Conclusioni
+    emvi: EMVI  
+    stadio_T: StadioT
+    stadio_N: StadioN  
+    stadio_N1c: StadioN1c
+    mrf: MRF
+    metastasi: Metastasi
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+    )
+
+class AnnotatedReportReduced(BaseModel):
+    report_text: str
+    report_data: AnnotationsReduced
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+    )
