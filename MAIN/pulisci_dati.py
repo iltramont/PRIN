@@ -1,7 +1,6 @@
 import pandas as pd
 from pathlib import Path
 
-import random
 import matplotlib.pyplot as plt
 import seaborn as sns
 import ast
@@ -9,16 +8,14 @@ import ast
 import constants
 
 
-
-
 ############
 # Parameters
 ############
-CLEAN_FILE_NAME = "tumoreprimitivo_clean.csv"
 
-#############
-# Preliminars
-#############
+
+###############
+# Preliminaries
+###############
 # Set base dir
 base_dir = Path(__file__).parent.parent
 # Set plot style and colors
@@ -35,9 +32,7 @@ sns.set_palette(finomnia_palette)
 # Get raw data
 ##############
 data = pd.read_csv(base_dir / "data" / constants.RAW_DATA_FILE_NAME)
-
-
-
+data.sort_values(by='id', inplace=True, ignore_index=True)
 
 ###########
 # Posizione
@@ -46,16 +41,11 @@ data = pd.read_csv(base_dir / "data" / constants.RAW_DATA_FILE_NAME)
 data.drop(columns=['posizione'], inplace=True)
 data.rename(columns={'posizione_multiple': 'posizione'}, inplace=True)
 
-##################################
-# Dropping no significance columns
-##################################
-# TODO mettere in fondo
-#data.drop(columns=list(constants.LOW_SIGNIFICANCE_COLUMNS), inplace=True)
 
 ###################
 # Not clear reports
 ###################
-# Referti poco chiari. Sono quelli che hanno la stringa "escludere". anche il referto 281 è da escludere.
+# Referti poco chiari. Sono quelli che hanno la stringa "escludere". Anche il referto 281 è da escludere.
 for i, r in data[data['interpretazioni'].str.contains("escludere", case=False, na=False)].iterrows():
     print(f"*--- id referto: {r['id']}\ninterpretazione: {r['interpretazioni']}\n{100*'-'}")
     
@@ -86,7 +76,6 @@ print('Righe eliminate')
 data_clean.reset_index(inplace=True, drop=True)
 print(f'{data_clean.shape = }')
 
-
 #########################
 # Consistency adjustments
 #########################
@@ -116,8 +105,8 @@ data_clean.loc[
     , 'stadio_T'
     ] = 'T1-2'
 
-# --- Stadio N and lynph nodes --- #
-# Stadio N valorizato con "N1c". Anomalo solo il referto 44.
+# --- Stadio N and lymph nodes --- #
+# Stadio N valorizzato con "N1c". Anomalo solo il referto 44.
 data_clean.loc[(data_clean['id'] == 44), 'stadio_N1c'] = True
 data_clean.loc[(data_clean['id'] == 44), 'stadio_N'] = 'N2a'
 
@@ -203,7 +192,7 @@ data_clean.loc[
 
 # --- Metastasi --- #
 data_clean.loc[
-    (data_clean['metastasi'] == 'MX') &
+    ((data_clean['metastasi'] == 'MX') | (data_clean['metastasi'].isna())) &
     ((data_clean['lesioni_ossee'] == 'si') | (data_clean['sedi_non_locoregionali'] != '[]'))
     , 'metastasi'] = 'M1'
 
@@ -262,6 +251,7 @@ def sub_radiologist_name(x: str) -> str:
 
 data_clean['radiologist'] = data_clean['radiologist'].apply(sub_radiologist_name)
 
+
 #####################
 # Columns aggregation
 #####################
@@ -312,7 +302,7 @@ data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_
 data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.Si.value
 data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'].isna(), 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.No.value
 
-# Infiltrazione sfinteri. Trasformiamo la posizione in si. per otenere una classe (si/no/NaN)
+# Infiltrazione sfinteri. Trasformiamo la posizione in si. Per ottenere una classe (si/no/NaN)
 data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.Si.value
 data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.Si.value
 data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.Si.value
@@ -378,7 +368,7 @@ fig.suptitle("Count values", fontsize='xx-large', y=1)
 
 for i, col in enumerate(columns_plot):
     ax=axes[i]
-    sns.countplot(data=data_plot, x=col, order=data_plot[col].value_counts().index, ax=ax)
+    sns.countplot(data=data_x, x=col, order=data_x[col].value_counts().index, ax=ax)
     ax.set_title(col)
     # Add values on top of bars
     for p in ax.patches:
@@ -403,7 +393,7 @@ columns = ['posizione', 'sedi_locoregionali', 'sedi_non_locoregionali', 'sedi_li
 possible_values = {col: [constants.NAN_VALUE] for col in columns}
 
 for col in columns:
-    for s in data_plot[col].value_counts().index:
+    for s in data_x[col].value_counts().index:
         possible_values[col] += ast.literal_eval(s)
     possible_values[col] = list(set(possible_values[col]))    
 
@@ -413,7 +403,7 @@ counts = {
     for col in columns
 }
 for col in columns:
-    for s in data_plot[col]:
+    for s in data_x[col]:
         value_list = ast.literal_eval(s)
         for value in possible_values[col]:
             if value in value_list:
@@ -447,7 +437,19 @@ for i, col in enumerate(columns):
 plt.tight_layout()
 plt.show()
 
+
+##################################
+# Dropping no significance columns
+##################################
+#data_clean.drop(columns=list(constants.LOW_SIGNIFICANCE_COLUMNS), inplace=True)
+#print(f'{data_clean.shape =}')
+
+
+# !!!Segnalare a Ilaria che il referto 44 è da rivedere
+data_clean.drop(index=data_clean[data_clean['id'] == 44].index, inplace=True)
+
+
 # Save data
 if True:
-    data_clean.to_csv(base_dir / "data" / CLEAN_FILE_NAME, index=False)
+    data_clean.to_csv(base_dir / "data" / constants.CLEAN_DATA_FILE_NAME, index=False)
     

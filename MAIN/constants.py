@@ -14,18 +14,42 @@ XLM_ROBERTA_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-base"
 XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-large"
 BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
 
+############
 # File names
+############
 RAW_DATA_FILE_NAME = "base.tumoreprimitivo_finale.csv"
+CLEAN_DATA_FILE_NAME = "tumoreprimitivo_clean.csv"
+TRAIN_SPLIT_FILE_NAME = 'train_split_reduced'
+TEST_SPLIT_FILE_NAME = 'test_split_reduced'
+VALIDATION_SPLIT_FILE_NAME = 'validation_split_reduced'
 
 
 # Raw data fields
 REPORT_COLUMN_NAME = "report_text"
+ANNOTATOR_COLUMN_NAME = "report_text"
 LOW_SIGNIFICANCE_COLUMNS = (
     'carcinosi_peritoneale',
     'lesioni_ossee',
     'numero_depositi',
     'dimensione_dll',
     'dimensione_dap'
+)
+
+
+######################
+# Splitting parameters
+######################
+TEST_SIZE = 0.2
+VALIDATION_SIZE = 0.2
+STRATIFY_COLUMNS = (
+    'morfologia',
+    'infiltrazione_tessuto_adiposo',
+    'coinvolgimento_riflessione_peritoneale',
+    'stadio_T',
+    'stadio_N1c',
+    'emvi',
+    'metastasi',
+    'infiltrazione_sfinteri',
 )
 
 
