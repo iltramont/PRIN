@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-
 ############
 # Parameters
 ############
@@ -90,11 +89,12 @@ X_train['split'] = 'train'
 X_test['split'] = 'test'
 X_validation['split'] = 'validation'
 
+assert set(X_train.index).isdisjoint(X_test.index)
+assert set(X_train.index).isdisjoint(X_validation.index)
+assert set(X_test.index).isdisjoint(X_validation.index)
+
+
 print(f'\nSplitatto il dataset\n{X_train.shape = }\n{X_test.shape = }\n{X_validation.shape = }')
-
-
-
-
 
 
 ##########################
@@ -123,14 +123,11 @@ for j in range(len(plot_columns), len(axes)):
 plt.show()
 
 
-
-
 ############
 # Multilabel
 ############
 
 plot_columns = model_utils.get_multiple_choice_fields(constants.Annotations)
-
 
 n_columns = 2
 n_rows, r = divmod(len(plot_columns), n_columns)
@@ -158,7 +155,6 @@ for j in range(len(plot_columns), len(axes)):
     fig.delaxes(axes[j])
 
 plt.show()
-
 
 
 ###########

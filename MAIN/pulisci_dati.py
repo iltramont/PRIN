@@ -21,11 +21,11 @@ base_dir = Path(__file__).parent.parent
 # Set plot style and colors
 plt.style.use('ggplot')
 hls_palette = sns.color_palette('hls')
-finomnia_palette = sns.color_palette(('#2659ab',
-                                      '#db038a',
-                                      '#45c9f5',
-                                      '#66218a',
-                                      '#081c36',))
+finomnia_palette = sns.color_palette(('#2659ab',   # Blue
+                                      '#db038a',   # Pink
+                                      '#45c9f5',   # Ligth blue
+                                      '#66218a',   # Violet
+                                      '#081c36'))  # Dark blue
 sns.set_palette(finomnia_palette)
 
 ##############
@@ -263,10 +263,10 @@ for s in data_clean.infiltrazione_organi_dettagli.fillna(constants.NAN_VALUE):
         infiltrazione_organi_dettagli_new.append(str(dettagli))
     else:
         d = ast.literal_eval(s)
-        if constants.InfiltrazioneOrganiDettagli.PavimentoPelvico.value in d:
-            dettagli.append(constants.InfiltrazioneOrganiDettagli.PavimentoPelvico.value)
+        if constants.InfiltrazioneOrganiDettagli.PAVIMENTO_PELVICO.value in d:
+            dettagli.append(constants.InfiltrazioneOrganiDettagli.PAVIMENTO_PELVICO.value)
         if ('altro' in d) or ('utero' in d) or ('sacro' in d):
-            dettagli.append(constants.InfiltrazioneOrganiDettagli.Altro.value)
+            dettagli.append(constants.InfiltrazioneOrganiDettagli.ALTRO.value)
         infiltrazione_organi_dettagli_new.append(str(dettagli))
 data_clean.loc[:, 'infiltrazione_organi_dettagli'] = infiltrazione_organi_dettagli_new
 
@@ -276,37 +276,37 @@ for s in data_clean.sedi_linfonodi:
     sedi = ast.literal_eval(s)
     sedi_new = set()
     for sede in sedi:
-        if sede in [constants.SediLinfonodi.Mesorettali.value,
-                    constants.SediLinfonodi.RettaliSuperiori.value,
-                    constants.SediLinfonodi.Otturatori.value]:
+        if sede in [constants.SediLinfonodi.MESORETTALI.value,
+                    constants.SediLinfonodi.RETTALI_SUPERIORI.value,
+                    constants.SediLinfonodi.OTTURATORI.value]:
             sedi_new.add(sede)
         elif sede in ['iliaci_comuni',
                       'iliaci_interni',
                       'iliaci_esterni']:
-            sedi_new.add(constants.SediLinfonodi.Iliaci.value)
+            sedi_new.add(constants.SediLinfonodi.ILIACI.value)
         else:
-            sedi_new.add(constants.SediLinfonodi.Altro.value)
+            sedi_new.add(constants.SediLinfonodi.ALTRO.value)
     sedi_linfonodi_new.append(str(list(sedi_new)))
 data_clean.loc[:, 'sedi_linfonodi'] = sedi_linfonodi_new
 
 # infiltrazione tessuto adiposo
-data_clean.loc[data_clean['infiltrazione_tessuto_adiposo'] == 'sospetto', 'infiltrazione_tessuto_adiposo'] = constants.InfiltrazioneTessutoAdiposo.Si5mm.value
-data_clean.loc[data_clean['infiltrazione_tessuto_adiposo'].isna(), 'infiltrazione_tessuto_adiposo'] = constants.InfiltrazioneTessutoAdiposo.No.value
+data_clean.loc[data_clean['infiltrazione_tessuto_adiposo'] == 'sospetto', 'infiltrazione_tessuto_adiposo'] = constants.InfiltrazioneTessutoAdiposo.SI_5MM.value
+data_clean.loc[data_clean['infiltrazione_tessuto_adiposo'].isna(), 'infiltrazione_tessuto_adiposo'] = constants.InfiltrazioneTessutoAdiposo.NO.value
 
 # Coinvolgimento fascia mesorettale
-data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'] == 'rischio'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.Si.value
-data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_clean['mrf'] == '+'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.Si.value
-data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_clean['mrf'] == '-'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.No.value
+data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'] == 'rischio'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.SI.value
+data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_clean['mrf'] == '+'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.SI.value
+data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_clean['mrf'] == '-'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.NO.value
 
 # Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
-data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.Si.value
-data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'].isna(), 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.No.value
+data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.SI.value
+data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'].isna(), 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.NO.value
 
 # Infiltrazione sfinteri. Trasformiamo la posizione in si. Per ottenere una classe (si/no/NaN)
-data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.Si.value
-data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.Si.value
-data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.Si.value
-data_clean.loc[data_clean['infiltrazione_sfinteri'].isna(), 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.No.value
+data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.SI.value
+data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.SI.value
+data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.SI.value
+data_clean.loc[data_clean['infiltrazione_sfinteri'].isna(), 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.NO.value
 
 # Stadio N
 data_clean.loc[data_clean['stadio_N'] == 'N1a', 'stadio_N'] = constants.StadioN.N1.value
@@ -316,7 +316,7 @@ data_clean.loc[data_clean['stadio_N'] == 'N2b', 'stadio_N'] = constants.StadioN.
 
 # Emvi
 data_clean.loc[data_clean['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
-data_clean.loc[data_clean['emvi'].isna(), 'emvi'] = constants.EMVI.Minus.value
+data_clean.loc[data_clean['emvi'].isna(), 'emvi'] = constants.EMVI.MINUS.value
 
 # Metastasi
 data_clean.loc[data_clean['metastasi'].isna(), 'metastasi'] = constants.Metastasi.MX.value
@@ -325,8 +325,8 @@ data_clean.loc[data_clean['metastasi'].isna(), 'metastasi'] = constants.Metastas
 data_clean.loc[data_clean['numero_depositi'].isna(), 'numero_depositi'] = 0
 
 # Infiltrazione organi extra
-data_clean.loc[data_clean['infiltrazione_organi_extra'].isna(), 'infiltrazione_organi_extra'] = constants.InfiltrazioneOrganiExtra.No.value
-data_clean.loc[data_clean['infiltrazione_organi_extra'] == 'sospetto', 'infiltrazione_organi_extra'] = constants.InfiltrazioneOrganiExtra.Si.value
+data_clean.loc[data_clean['infiltrazione_organi_extra'].isna(), 'infiltrazione_organi_extra'] = constants.InfiltrazioneOrganiExtra.NO.value
+data_clean.loc[data_clean['infiltrazione_organi_extra'] == 'sospetto', 'infiltrazione_organi_extra'] = constants.InfiltrazioneOrganiExtra.SI.value
 
 # Lesioni ossee
 data_clean.loc[data_clean['lesioni_ossee'].isna(), 'lesioni_ossee'] = 'no'
@@ -335,8 +335,10 @@ data_clean.loc[data_clean['lesioni_ossee'].isna(), 'lesioni_ossee'] = 'no'
 data_clean.loc[data_clean['carcinosi_peritoneale'].isna(), 'carcinosi_peritoneale'] = 'no'
 
 # Depositi tumorali
-data_clean.loc[data_clean['depositi_tumorali'].isna(), 'depositi_tumorali'] = constants.DepositiTumorali.No.value
-data_clean.loc[data_clean['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = constants.DepositiTumorali.Si.value
+data_clean.loc[data_clean['depositi_tumorali'].isna(), 'depositi_tumorali'] = constants.DepositiTumorali.NO.value
+data_clean.loc[data_clean['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = constants.DepositiTumorali.NO.value
+
+data_clean.loc[data_clean['riflessione_peritoneale_anteriore'].isna(), 'riflessione_peritoneale_anteriore'] = constants.RiflessionePeritonealeAnteriore.NON_VALUTABILE.value
 
 
 ##########
@@ -381,7 +383,7 @@ for j in range(len(columns_plot), len(axes)):
     fig.delaxes(axes[j])
 
 plt.tight_layout()
-plt.show()
+#plt.show()
 
 
 ########
@@ -390,52 +392,65 @@ plt.show()
 # Analisi posizione, sedi locoregionali, sedi non locoregionali
 columns = ['posizione', 'sedi_locoregionali', 'sedi_non_locoregionali', 'sedi_linfonodi', 'infiltrazione_organi_dettagli']
 
-possible_values = {col: [constants.NAN_VALUE] for col in columns}
 
-for col in columns:
-    for s in data_x[col].value_counts().index:
-        possible_values[col] += ast.literal_eval(s)
-    possible_values[col] = list(set(possible_values[col]))    
-
-
-counts = {
-    col: {val: 0 for val in possible_values[col]}
-    for col in columns
-}
-for col in columns:
-    for s in data_x[col]:
-        value_list = ast.literal_eval(s)
-        for value in possible_values[col]:
-            if value in value_list:
-                counts[col][value] += 1
-        if value_list == []:
-            counts[col][constants.NAN_VALUE] += 1
-              
 n_columns = 2
 n_rows, r = divmod(len(columns), n_columns)
 if r != 0:
     n_rows += 1
-            
-fig, axes = plt.subplots(n_rows, n_columns, figsize=(21, n_rows*3))
-orientation = 'h'
-for i, col in enumerate(columns):
-    ax=axes[i//n_columns][i%n_columns]
-    series = pd.Series(counts[col], name=col).sort_values(ascending=False)
-    sns.barplot(data=series, ax=ax, orient=orientation)
-    # Add values on top of bars
-    if orientation == 'v':
-        for p in ax.patches:
-            y_text = int(p.get_height())
-            x_text = p.get_x() + p.get_width() / 2
-            ax.text(x=x_text, y=y_text, s=f'{y_text}', ha='center', va='bottom')
-    if orientation == 'h':
-        for p in ax.patches:
-            x_text = p.get_width()
-            y_text = p.get_y() + p.get_height() / 2
-            ax.text(x=x_text, y=y_text, s=f'{int(x_text)}', va='center', ha='left')
 
-plt.tight_layout()
-plt.show()
+fig, axes = plt.subplots(n_rows, n_columns, figsize=(21, n_rows * 3))
+axes = axes.flatten()
+
+for i, col in enumerate(columns):
+    df_plot = pd.DataFrame(columns=[col, 'profile'])
+    for _, row in data_x.iterrows():
+        l = ast.literal_eval(row[col])
+        if len(l) == 0:
+            continue
+        else:
+            split = row['profile']
+            for s in l:
+                df_plot.loc[len(df_plot)] = [s, split]
+    sns.countplot(data=df_plot, ax=axes[i], y=col)
+    axes[i].set_title(col)
+    axes[i].set_xlabel(None)
+    axes[i].set_ylabel(None)
+    
+    for p in axes[i].patches:
+        x_text = p.get_width()
+        y_text = p.get_y() + p.get_height() / 2
+        axes[i].text(x=x_text, y=y_text, s=f'{int(x_text)}', va='center', ha='left')
+
+# Rimuove eventuali assi vuoti
+for j in range(len(columns), len(axes)):
+    fig.delaxes(axes[j])
+
+#plt.show()
+
+
+#########################
+# Create new flag columns
+#########################
+for pos in constants.Posizione:
+    new_col_name = f'posizione_{pos.value}'
+    print(new_col_name)
+    data_clean[new_col_name] = data_clean['posizione'].str.contains(pos.value)
+    data_clean.loc[data_clean[new_col_name] == True, new_col_name] = constants.Flag.SI.value
+    data_clean.loc[data_clean[new_col_name] == False, new_col_name] = constants.Flag.NO.value
+
+for pos in constants.InfiltrazioneOrganiDettagli:
+    new_col_name = f'infiltrazione_organi_dettagli_{pos.value}'
+    print(new_col_name)
+    data_clean[new_col_name] = data_clean['infiltrazione_organi_dettagli'].str.contains(pos.value)
+    data_clean.loc[data_clean[new_col_name] == True, new_col_name] = constants.Flag.SI.value
+    data_clean.loc[data_clean[new_col_name] == False, new_col_name] = constants.Flag.NO.value
+
+for pos in constants.SediLinfonodi:
+    new_col_name = f'sedi_linfonodi_{pos.value}'
+    print(new_col_name)
+    data_clean[new_col_name] = data_clean['sedi_linfonodi'].str.contains(pos.value)
+    data_clean.loc[data_clean[new_col_name] == True, new_col_name] = constants.Flag.SI.value
+    data_clean.loc[data_clean[new_col_name] == False, new_col_name] = constants.Flag.NO.value
 
 
 ##################################
@@ -452,4 +467,5 @@ data_clean.drop(index=data_clean[data_clean['id'] == 44].index, inplace=True)
 # Save data
 if True:
     data_clean.to_csv(base_dir / "data" / constants.CLEAN_DATA_FILE_NAME, index=False)
+    print('Data saved')
     
