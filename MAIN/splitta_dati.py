@@ -18,7 +18,7 @@ import seaborn as sns
 ############
 # Parameters
 ############
-SAVE_DATA = False
+SAVE_DATA = True
 
 
 #############
@@ -48,6 +48,10 @@ print(f'{data.shape = }')
 
 # Keep only report and target columns
 target_columns = list(constants.Annotations.model_fields.keys())
+target_columns_extended = model_utils.get_binary_classification_fields(constants.AnnotationsExtended)
+for t in target_columns_extended:
+    if t not in target_columns:
+        target_columns.append(t)
 
 
 ###########
@@ -161,9 +165,9 @@ plt.show()
 # Save data
 ###########
 if SAVE_DATA:
-    train_path = base_dir / "data" / (constants.TRAIN_SPLIT_FILE_NAME + '.csv')
+    train_path = base_dir / "data" / (constants.TRAIN_SPLIT_FILE_NAME)
     X_train.to_csv(train_path, index=False)
-    test_path = base_dir / "data" / (constants.TEST_SPLIT_FILE_NAME + '.csv')
+    test_path = base_dir / "data" / (constants.TEST_SPLIT_FILE_NAME)
     X_test.to_csv(test_path, index=False)
-    validation_path = base_dir / "data" / (constants.VALIDATION_SPLIT_FILE_NAME + '.csv')
+    validation_path = base_dir / "data" / (constants.VALIDATION_SPLIT_FILE_NAME)
     X_validation.to_csv(validation_path, index=False)

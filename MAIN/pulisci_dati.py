@@ -309,10 +309,26 @@ data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 
 data_clean.loc[data_clean['infiltrazione_sfinteri'].isna(), 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.NO.value
 
 # Stadio N
-data_clean.loc[data_clean['stadio_N'] == 'N1a', 'stadio_N'] = constants.StadioN.N1.value
-data_clean.loc[data_clean['stadio_N'] == 'N1b', 'stadio_N'] = constants.StadioN.N1.value
-data_clean.loc[data_clean['stadio_N'] == 'N2a', 'stadio_N'] = constants.StadioN.N2.value
-data_clean.loc[data_clean['stadio_N'] == 'N2b', 'stadio_N'] = constants.StadioN.N2.value
+data_clean['stadio_N'] = data_clean['stadio_N'].map({
+    'N1a': constants.StadioN.N1.value,
+    'N1b': constants.StadioN.N1.value,
+    'N2a': constants.StadioN.N2.value,
+    'N2b': constants.StadioN.N2.value
+})
+
+# Stadio N1c
+data_clean['stadio_N1c'] = data_clean['stadio_N1c'].map({
+    True: constants.StadioN1c.SI.value,
+    False: constants.StadioN1c.NO.value
+})
+
+# Numero linfonodi non conosciuto
+data_clean['numero_linfonodi_non_conosciuto'] = data_clean['numero_linfonodi_non_conosciuto'].map({
+    True: constants.NumeroLinfonodiNonConosciuto.NON_CONOSCIUTO.value,
+    False: constants.NumeroLinfonodiNonConosciuto.CONOSCIUTO.value
+})
+
+
 
 # Emvi
 data_clean.loc[data_clean['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
@@ -383,7 +399,7 @@ for j in range(len(columns_plot), len(axes)):
     fig.delaxes(axes[j])
 
 plt.tight_layout()
-#plt.show()
+plt.show()
 
 
 ########
@@ -425,7 +441,7 @@ for i, col in enumerate(columns):
 for j in range(len(columns), len(axes)):
     fig.delaxes(axes[j])
 
-#plt.show()
+plt.show()
 
 
 #########################
@@ -464,6 +480,9 @@ for pos in constants.SediLinfonodi:
 data_clean.drop(index=data_clean[data_clean['id'] == 44].index, inplace=True)
 
 
+
+
+# TODO cambiare il tipo dei numerici in intero
 # Save data
 if True:
     data_clean.to_csv(base_dir / "data" / constants.CLEAN_DATA_FILE_NAME, index=False)

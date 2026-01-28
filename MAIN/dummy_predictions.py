@@ -6,10 +6,24 @@ import json
 from ast import literal_eval
 from pathlib import Path
 
+from pprint import pprint
+
 import constants
 
 from sklearn.dummy import DummyClassifier
 import numpy as np
+
+from model_utils import (
+    get_binary_classification_fields,
+    get_classification_fields,
+    get_multiple_choice_fields,
+    get_regression_fields,
+    create_label_to_id_map,
+    labels_to_bits,
+    get_field_values,
+    get_number_of_classes,
+    get_optional_regression_fields
+)
 
 
 #################
@@ -21,6 +35,7 @@ random.seed(constants.SEED)
 ############
 # Parameters
 ############
+ann_model = constants.Annotations
 
 base_dir = Path(__file__).parent.parent
 
@@ -37,7 +52,8 @@ paths = {
 
 data = dict()
 for split, path in paths.items():
-    data[split] = pd.read_csv(path).fillna(constants.NAN_VALUE)
+    print(path)
+    data[split] = pd.read_csv(path)
 
 train_data, validation_data, test_data = data['train'], data['validation'], data['test']
 
@@ -52,14 +68,21 @@ print(f"{len(validation_data) = }")
 print(f"{len(test_data) = }")
 
 
-target_columns = AnnotationsReduced.model_fields.keys()
+target_columns = ann_model.model_fields.keys()
 
-reg_fields = get_regression_fields(AnnotationsReduced)
-cl_fields = get_classification_fields(AnnotationsReduced)
-mc_fields = get_multiple_choice_fields(AnnotationsReduced)
-bc_fields = get_binary_classification_fields(AnnotationsReduced)
-label_to_id_map = create_label_to_id_map(AnnotationsReduced)
+reg_fields = get_regression_fields(ann_model)
+cl_fields = get_classification_fields(ann_model)
+mc_fields = get_multiple_choice_fields(ann_model)
+bc_fields = get_binary_classification_fields(ann_model)
 
+pprint(train_data.dtypes)
+pprint([train_data[reg_fields]])
+
+
+for f in reg_fields:
+    print(validation_data[f].value_counts())
+
+exit()
 
 
 def save_actual_row(res_dict: dict, split: str, actual_row: pd.Series, label_to_id_map):
@@ -71,6 +94,9 @@ def save_actual_row(res_dict: dict, split: str, actual_row: pd.Series, label_to_
         l = literal_eval(actual_row[field])
         bits = labels_to_bits(l, label_to_id_map[field]['label_to_id'])
         res_dict[split]['actual'][field].append(bits)
+    for field in get_regression_fields:
+        v = actual_row[field]
+        res_dict[split]['actual'][field].append(v)
         
         
         
@@ -78,7 +104,7 @@ def dummy_classification(y_train: np.ndarray | list,
                          strategy: str,
                          len_validation: int,
                          len_test: int,
-                         random_state=RANDOM_STATE) -> tuple[list[int]]:
+                         random_state=constants.SEED) -> tuple[list[int]]:
     x_train = np.zeros(len(y_train))
     classifier = DummyClassifier(strategy=strategy, random_state=random_state)
     classifier.fit(x_train, y_train)

@@ -4,6 +4,32 @@ from typing import Union, get_type_hints, get_origin, get_args
 from constants import NAN_VALUE
 
 
+def unwrap_type(t):
+    """Rimuove Optional, Union e List, restituendo il tipo base."""
+    origin = get_origin(t)
+    if origin is Union:
+        args = [a for a in get_args(t) if a is not type(None)]
+        return unwrap_type(args[0]) if args else t
+    if origin is list:
+        args = get_args(t)
+        return unwrap_type(args[0]) if args else t
+    return t
+
+
+def is_optional_type(t):
+    return get_origin(t) is Union and type(None) in get_args(t)
+
+def is_flag_model(t):
+    """Riconosce un FlagModel: BaseModel i cui campi sono tutti Enum."""
+    if not (isinstance(t, type) and issubclass(t, BaseModel)):
+        return False
+    hints = t.__annotations__
+    return all(
+        isinstance(unwrap_type(ft), type) and issubclass(unwrap_type(ft), Enum)
+        for ft in hints.values()
+    )
+
+
 def get_regression_fields(model: type[BaseModel]) -> list[str]:
     """
     Analizza il modello Pydantic e restituisce i campi numerici
@@ -53,60 +79,115 @@ def get_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
 
 def get_binary_classification_fields(model: type[BaseModel]) -> list[str]:
     """
-    Restituisce i campi di classificazione binaria (due classi).
+    Restituisce i campi di classificazione binaria (due classi),
+    includendo anche i sotto-campi dei FlagModel.
     """
     regression_fields = get_regression_fields(model)
     multiple_choice_fields = get_multiple_choice_fields(model)
     num_classes = get_number_of_classes(model)
+
     binary_fields = []
-    for name in model.model_fields.keys():
-        if (name not in regression_fields) and (name not in multiple_choice_fields) and (num_classes[name] == 2):
+
+    for name, field in model.model_fields.items():
+        field_type = unwrap_type(field.annotation)
+
+        # Escludi regressione
+        if name in regression_fields:
+            continue
+
+        # Escludi multilabel (liste)
+        if name in multiple_choice_fields:
+            continue
+
+        # Caso 1: campo normale → binario se num_classes == 2
+        if num_classes.get(name, 0) == 2:
             binary_fields.append(name)
+            continue
+
+        # Caso 2: FlagModel → includi i sotto-campi
+        if is_flag_model(field_type):
+            sub_hints = field_type.__annotations__
+            for sub_name in sub_hints.keys():
+                full_name = f"{name}_{sub_name}"
+                # Ogni flag ha sempre 2 classi
+                binary_fields.append(full_name)
+
     return binary_fields
 
 def get_classification_fields(model: type[BaseModel]) -> list[str]:
     """
-    Restituisce i campi di classificazione (non numerici e non multi-scelta).
+    Restituisce i campi di classificazione (non numerici, non multi-scelta,
+    non FlagModel, e con numero di classi > 2).
     """
     regression_fields = get_regression_fields(model)
     multiple_choice_fields = get_multiple_choice_fields(model)
     num_classes = get_number_of_classes(model)
+
     classification_fields = []
-    for name in model.model_fields.keys():
-        if (name not in regression_fields) and (name not in multiple_choice_fields) and (num_classes[name] > 2):
-            classification_fields.append(name)
+
+    for name, field in model.model_fields.items():
+        field_type = unwrap_type(field.annotation)
+        # Escludi regressione
+        if name in regression_fields:
+            continue
+        # Escludi multilabel (liste)
+        if name in multiple_choice_fields:
+            continue
+        # Escludi FlagModel
+        if is_flag_model(field_type):
+            continue
+        # Escludi binari (num_classes <= 2)
+        if num_classes.get(name, 0) <= 2:
+            continue
+        # Se arrivi qui → è classificazione multiclass
+        classification_fields.append(name)
+
     return classification_fields
 
+
 def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
-    """
-    Restituisce un dizionario con i campi Enum e bool del modello
-    e i valori possibili per ciascuno.
-    """
     field_values = {}
-    hints = get_type_hints(model)
+    hints = model.__annotations__
+
     for field_name, field_type in hints.items():
-        # Gestione Optional
-        is_optional = (get_origin(field_type) is Union) and (type(None) in get_args(field_type))
-        if is_optional:
-            args = [t for t in get_args(field_type) if t is not type(None)]
-            if args:
-                field_type = args[0]
-        # Gestione List
-        if get_origin(field_type) is list:
-            args = get_args(field_type)
-            if args:
-                field_type = args[0]
-        # Se è un Enum
-        if isinstance(field_type, type) and issubclass(field_type, Enum):
-            field_values[field_name] = [e.value for e in field_type]
-            if is_optional:
-                field_values[field_name].append(NAN_VALUE)
-        # Se è un bool
-        elif field_type is bool:
-            field_values[field_name] = [False, True]
-            if is_optional:
-                field_values[field_name].append(NAN_VALUE)
+        optional = is_optional_type(field_type)
+        base_type = unwrap_type(field_type)
+
+        # --- Caso 1: Enum ---
+        if isinstance(base_type, type) and issubclass(base_type, Enum):
+            values = [e.value for e in base_type]
+            if optional:
+                values.append(NAN_VALUE)
+            field_values[field_name] = values
+            continue
+
+        # --- Caso 2: bool ---
+        if base_type is bool:
+            values = [False, True]
+            if optional:
+                values.append(NAN_VALUE)
+            field_values[field_name] = values
+            continue
+
+        # --- Caso 3: FlagModel (BaseModel con campi Enum/Flag) ---
+        if isinstance(base_type, type) and issubclass(base_type, BaseModel):
+            # Controllo che sia davvero un FlagModel (tutti i campi Enum o Flag)
+            sub_hints = base_type.__annotations__
+            is_flag_model = all(
+                isinstance(unwrap_type(t), type) and issubclass(unwrap_type(t), Enum)
+                for t in sub_hints.values()
+            )
+
+            if is_flag_model:
+                for sub_name, sub_type in sub_hints.items():
+                    sub_base = unwrap_type(sub_type)
+                    values = [e.value for e in sub_base]
+                    if optional:
+                        values.append(NAN_VALUE)
+                    field_values[f"{field_name}_{sub_name}"] = values
+
     return field_values
+
 
 def get_number_of_classes(model: type[BaseModel]) -> dict[str, int]:
     """

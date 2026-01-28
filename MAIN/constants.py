@@ -19,15 +19,15 @@ BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
 ############
 RAW_DATA_FILE_NAME = "base.tumoreprimitivo_finale.csv"
 CLEAN_DATA_FILE_NAME = "tumoreprimitivo_clean.csv"
-TRAIN_SPLIT_FILE_NAME = 'train_split_reduced'
-TEST_SPLIT_FILE_NAME = 'test_split_reduced'
-VALIDATION_SPLIT_FILE_NAME = 'validation_split_reduced'
+TRAIN_SPLIT_FILE_NAME = 'train_split.csv'
+TEST_SPLIT_FILE_NAME = 'test_split.csv'
+VALIDATION_SPLIT_FILE_NAME = 'validation_split.csv'
 
 #################
 # Raw data fields
 #################
 REPORT_COLUMN_NAME = "report_text"
-ANNOTATOR_COLUMN_NAME = "report_text"
+ANNOTATOR_COLUMN_NAME = "profile"
 LOW_SIGNIFICANCE_COLUMNS = (
     'carcinosi_peritoneale',
     'lesioni_ossee',
@@ -162,8 +162,8 @@ class InfiltrazioneOrganiExtra(str, Enum):
     SI = "si"
     
 class NumeroLinfonodiNonConosciuto(str, Enum):
-    NO = "no"
-    SI = "si"
+    CONOSCIUTO = "conosciuto"
+    NON_CONOSCIUTO = "non_conosciuto"
     
 class DepositiTumorali(str, Enum):
     NO = "no"
@@ -190,6 +190,7 @@ class Annotations(BaseModel):
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
     # Linfonodi Sospetti
     linfonodi_sospetti: int
+    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
     sedi_linfonodi: List[SediLinfonodi] = Field(default_factory=list)
     depositi_tumorali: DepositiTumorali
     # Conclusioni
@@ -246,6 +247,7 @@ class AnnotationsReduced(BaseModel):
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
     # Linfonodi Sospetti
     #linfonodi_sospetti: int  # linfonodi sospetti si potrebbe discretizzare e far diventare categorico
+    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
     sedi_linfonodi: List[SediLinfonodi] = Field(default_factory=list)
     depositi_tumorali: DepositiTumorali
     # Conclusioni
@@ -304,6 +306,7 @@ class AnnotationsExtended(BaseModel):
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
     # Linfonodi Sospetti
     linfonodi_sospetti: int
+    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
     sedi_linfonodi: SediLinfonodiFlag
     depositi_tumorali: DepositiTumorali
     # Conclusioni
