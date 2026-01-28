@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 from pathlib import Path
 
@@ -290,8 +291,8 @@ for s in data_clean.sedi_linfonodi:
 data_clean.loc[:, 'sedi_linfonodi'] = sedi_linfonodi_new
 
 # infiltrazione tessuto adiposo
-data_clean.loc[data_clean['infiltrazione_tessuto_adiposo'] == 'sospetto', 'infiltrazione_tessuto_adiposo'] = constants.InfiltrazioneTessutoAdiposo.SI_5MM.value
-data_clean.loc[data_clean['infiltrazione_tessuto_adiposo'].isna(), 'infiltrazione_tessuto_adiposo'] = constants.InfiltrazioneTessutoAdiposo.NO.value
+data_clean['infiltrazione_tessuto_adiposo'].replace({'sospetto': constants.InfiltrazioneTessutoAdiposo.SI_5MM.value}, inplace=True)
+data_clean['infiltrazione_tessuto_adiposo'].fillna(constants.InfiltrazioneTessutoAdiposo.NO.value, inplace=True)
 
 # Coinvolgimento fascia mesorettale
 data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'] == 'rischio'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.SI.value
@@ -299,62 +300,64 @@ data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_
 data_clean.loc[(data_clean['coinvolgimento_fascia_mesorettale'].isna()) & (data_clean['mrf'] == '-'), 'coinvolgimento_fascia_mesorettale'] = constants.CoinvolgimentoFasciaMesorettale.NO.value
 
 # Coinvolgimento riflessione peritoneale. Trasformiamo rischio in si
-data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio', 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.SI.value
-data_clean.loc[data_clean['coinvolgimento_riflessione_peritoneale'].isna(), 'coinvolgimento_riflessione_peritoneale'] = constants.CoinvolgimentoRiflessionePeritoneale.NO.value
+data_clean['coinvolgimento_riflessione_peritoneale'].replace({'rischio': constants.CoinvolgimentoRiflessionePeritoneale.SI.value}, inplace=True)
+data_clean['coinvolgimento_riflessione_peritoneale'].fillna(constants.CoinvolgimentoRiflessionePeritoneale.NO.value, inplace=True)
 
 # Infiltrazione sfinteri. Trasformiamo la posizione in si. Per ottenere una classe (si/no/NaN)
-data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.SI.value
-data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.SI.value
-data_clean.loc[data_clean['infiltrazione_sfinteri'] == 'interno_piano_esterno', 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.SI.value
-data_clean.loc[data_clean['infiltrazione_sfinteri'].isna(), 'infiltrazione_sfinteri'] = constants.InfiltrazioneSfinteri.NO.value
+data_clean['infiltrazione_sfinteri'].replace({
+    'interno_piano': constants.InfiltrazioneSfinteri.SI.value,
+    'interno': constants.InfiltrazioneSfinteri.SI.value,
+    'interno_piano_esterno': constants.InfiltrazioneSfinteri.SI.value
+}, inplace=True)
+data_clean['infiltrazione_sfinteri'].fillna(constants.InfiltrazioneSfinteri.NO.value, inplace=True)
+
 
 # Stadio N
-data_clean['stadio_N'] = data_clean['stadio_N'].map({
+data_clean['stadio_N'].replace({
     'N1a': constants.StadioN.N1.value,
     'N1b': constants.StadioN.N1.value,
     'N2a': constants.StadioN.N2.value,
     'N2b': constants.StadioN.N2.value
-})
+}, inplace=True)
 
 # Stadio N1c
-data_clean['stadio_N1c'] = data_clean['stadio_N1c'].map({
+data_clean['stadio_N1c'].replace({
     True: constants.StadioN1c.SI.value,
     False: constants.StadioN1c.NO.value
-})
+}, inplace=True)
 
 # Numero linfonodi non conosciuto
-data_clean['numero_linfonodi_non_conosciuto'] = data_clean['numero_linfonodi_non_conosciuto'].map({
+data_clean['numero_linfonodi_non_conosciuto'].replace({
     True: constants.NumeroLinfonodiNonConosciuto.NON_CONOSCIUTO.value,
     False: constants.NumeroLinfonodiNonConosciuto.CONOSCIUTO.value
-})
-
-
+}, inplace=True)
 
 # Emvi
-data_clean.loc[data_clean['emvi_esteso'] == 'sospetto', 'emvi_esteso'] = 'si'
-data_clean.loc[data_clean['emvi'].isna(), 'emvi'] = constants.EMVI.MINUS.value
+data_clean['emvi_esteso'].replace({'sospetto': 'si'}, inplace=True)
+data_clean['emvi'].fillna(constants.EMVI.MINUS.value, inplace=True)
 
 # Metastasi
-data_clean.loc[data_clean['metastasi'].isna(), 'metastasi'] = constants.Metastasi.MX.value
+data_clean['metastasi'].fillna(constants.Metastasi.MX.value, inplace=True)
 
 # Numero depositi
-data_clean.loc[data_clean['numero_depositi'].isna(), 'numero_depositi'] = 0
+data_clean['numero_depositi'].fillna(0, inplace=True)
 
 # Infiltrazione organi extra
-data_clean.loc[data_clean['infiltrazione_organi_extra'].isna(), 'infiltrazione_organi_extra'] = constants.InfiltrazioneOrganiExtra.NO.value
-data_clean.loc[data_clean['infiltrazione_organi_extra'] == 'sospetto', 'infiltrazione_organi_extra'] = constants.InfiltrazioneOrganiExtra.SI.value
+data_clean['infiltrazione_organi_extra'].replace({'sospetto': constants.InfiltrazioneOrganiExtra.SI.value}, inplace=True)
+data_clean['infiltrazione_organi_extra'].fillna(constants.InfiltrazioneOrganiExtra.NO.value, inplace=True)
 
 # Lesioni ossee
-data_clean.loc[data_clean['lesioni_ossee'].isna(), 'lesioni_ossee'] = 'no'
+data_clean['lesioni_ossee'].fillna('no', inplace=True)
 
 # Carcinosi peritoneale
-data_clean.loc[data_clean['carcinosi_peritoneale'].isna(), 'carcinosi_peritoneale'] = 'no'
+data_clean['carcinosi_peritoneale'].fillna('no', inplace=True)
 
 # Depositi tumorali
-data_clean.loc[data_clean['depositi_tumorali'].isna(), 'depositi_tumorali'] = constants.DepositiTumorali.NO.value
-data_clean.loc[data_clean['depositi_tumorali'] == 'sospetto', 'depositi_tumorali'] = constants.DepositiTumorali.NO.value
+data_clean['depositi_tumorali'].replace({'sospetto': constants.DepositiTumorali.SI.value}, inplace=True)
+data_clean['depositi_tumorali'].fillna(constants.DepositiTumorali.NO.value, inplace=True)
 
-data_clean.loc[data_clean['riflessione_peritoneale_anteriore'].isna(), 'riflessione_peritoneale_anteriore'] = constants.RiflessionePeritonealeAnteriore.NON_VALUTABILE.value
+# Riflessione peritoneale
+data_clean['riflessione_peritoneale_anteriore'].fillna(constants.RiflessionePeritonealeAnteriore.NON_VALUTABILE.value, inplace=True)
 
 
 ##########
