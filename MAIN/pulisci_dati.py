@@ -483,9 +483,14 @@ for pos in constants.SediLinfonodi:
 data_clean.drop(index=data_clean[data_clean['id'] == 44].index, inplace=True)
 
 
+################################
+# Convert float columns to Int64
+################################
+float_cols = data_clean.select_dtypes("float").columns
+for col in float_cols:
+    data_clean[col] = data_clean[col].round().astype("Int64")
 
 
-# TODO cambiare il tipo dei numerici in intero
 # Save data
 if True:
     data_clean.to_csv(base_dir / "data" / constants.CLEAN_DATA_FILE_NAME, index=False)

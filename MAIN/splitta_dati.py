@@ -161,6 +161,16 @@ for j in range(len(plot_columns), len(axes)):
 plt.show()
 
 
+float_cols = X_train.select_dtypes("float").columns
+################################
+# Convert float columns to Int64
+################################
+for col in float_cols:
+    X_train[col] = X_train[col].round().astype("Int64")
+    X_test[col] = X_test[col].round().astype("Int64")
+    X_validation[col] = X_validation[col].round().astype("Int64")
+
+
 ###########
 # Save data
 ###########
