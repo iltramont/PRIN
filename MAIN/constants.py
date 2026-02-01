@@ -14,6 +14,15 @@ XLM_ROBERTA_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-base"
 XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-large"
 BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
 
+
+#########
+# Mistral
+#########
+MISTRAL_MODEL_30_EPOCHS = "ft:classifier:ministral-3b-latest:6f88df17:20260201:63a1a8ac"
+MISTRAL_TRAIN_FILE_NAME = "train_mistral.jsonl"
+MISTRAL_VALIDATION_FILE_NAME = "validation_mistral.jsonl"
+MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
+
 ############
 # File names
 ############
@@ -177,9 +186,9 @@ class Annotations(BaseModel):
     morfologia: Morfologia
     ore_inizio: Optional[int] = None
     ore_fine: Optional[int] = None
-    spessore_parietale: Optional[float] = None
-    estensione_cranio_caudale: Optional[float] = None
-    distanza_oai: Optional[float] = None
+    spessore_parietale: Optional[int] = None
+    estensione_cranio_caudale: Optional[int] = None
+    distanza_oai: Optional[int] = None
     posizione: List[Posizione] = Field(default_factory=list)
     riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
     infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo
@@ -293,9 +302,9 @@ class AnnotationsExtended(BaseModel):
     morfologia: Morfologia
     ore_inizio: Optional[int] = None
     ore_fine: Optional[int] = None
-    spessore_parietale: Optional[float] = None
-    estensione_cranio_caudale: Optional[float] = None
-    distanza_oai: Optional[float] = None
+    spessore_parietale: Optional[int] = None
+    estensione_cranio_caudale: Optional[int] = None
+    distanza_oai: Optional[int] = None
     posizione: PosizioneFlag
     riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
     infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo

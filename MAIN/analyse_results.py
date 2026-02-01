@@ -19,8 +19,8 @@ base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
 SAVE_RESULTS = True
-RESULTS_FILE = "results_baseline_stratified.json"
-SAVING_FILE = "baseline_stratified.csv"
+RESULTS_FILE = "results_mistral_30.json"
+SAVING_FILE = "metrics_mistral_30.csv"
 
 # Set plot style
 plt.style.use('ggplot')
@@ -95,6 +95,8 @@ for i, field in enumerate(bin_fields):
     for split in ('validation', 'test'):
         predicted = np.array(results[split]['predicted'][field])
         actual = np.array(results[split]['actual'][field])
+        print(actual)
+        print(predicted)
         m = {
             'field': field,
             'split': split, 
