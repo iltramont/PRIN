@@ -6,7 +6,7 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib
 from pprint import pprint
-from sklearn.metrics import ConfusionMatrixDisplay, f1_score, matthews_corrcoef, confusion_matrix, mean_absolute_error, mean_absolute_percentage_error
+from sklearn.metrics import ConfusionMatrixDisplay, f1_score, matthews_corrcoef, confusion_matrix, mean_absolute_error, mean_absolute_percentage_error, precision_recall_curve
 import seaborn as sns
 import math
 
@@ -21,6 +21,7 @@ base_dir = Path(__file__).parent.parent
 SAVE_RESULTS = True
 RESULTS_FILE = "results_mistral_30.json"
 SAVING_FILE = "metrics_mistral_30.csv"
+USE_SCORES = True  # If True, use scores instead of hard predictions
 
 # Set plot style
 plt.style.use('ggplot')
@@ -83,6 +84,28 @@ df_reg = pd.DataFrame(rows)
 #######################
 # Binary Classification
 #######################
+def get_best_threshold_binary(y_true: np.ndarray, pred_prob: np.ndarray) -> float:
+    """
+    Calcola la soglia ottimale per classificazione binaria
+    massimizzando l'F1 score.
+
+    Args:
+        y_true: array delle etichette vere (0 o 1)
+        pred_prob: array delle probabilità previste dal modello (float tra 0 e 1)
+
+    Returns:
+        best_threshold: soglia ottimale (float)
+    """
+    precisions, recalls, thresholds = precision_recall_curve(y_true, pred_prob)
+    # Calcola F1 score
+    f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-8)
+    # thresholds ha lunghezza len(f1_scores) - 1 → consideriamo solo i primi f1_scores
+    best_index = np.argmax(f1_scores[:-1])
+    best_threshold = thresholds[best_index]
+    return float(best_threshold)
+
+
+
 bin_fields = results['info']['binary_classification_fields']
 #n_cols = 4
 #n_rows = math.ceil(len(bin_fields) / n_cols)
@@ -92,17 +115,23 @@ bin_fields = results['info']['binary_classification_fields']
 
 df = []
 for i, field in enumerate(bin_fields):
+    best_threshold = None
+    if USE_SCORES:
+        # Trova soglia ottimale
+        best_threshold = get_best_threshold_binary(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
         predicted = np.array(results[split]['predicted'][field])
         actual = np.array(results[split]['actual'][field])
-        print(actual)
-        print(predicted)
+        if best_threshold is not None:
+            # Applica soglia
+            predicted = (predicted >= best_threshold).astype(int)
         m = {
             'field': field,
             'split': split, 
             'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
             'f1': f1_score(actual, predicted, zero_division=0),
-            'mcc': matthews_corrcoef(actual, predicted)
+            'mcc': matthews_corrcoef(actual, predicted),
+            'best_threshold': best_threshold
         }
         #cm = confusion_matrix(actual, predicted)
         df.append(pd.Series(m))
@@ -139,7 +168,10 @@ df = []
 for i, field in enumerate(clas_fields):
     for split in ('validation', 'test'):
         predicted = np.array(results[split]['predicted'][field])
-        actual = np.array(results[split]['actual'][field])    
+        actual = np.array(results[split]['actual'][field])
+        if USE_SCORES:
+            # Convert scores to hard predictions
+            predicted = np.argmax(predicted, axis=-1)
         m = {
             'field': field,
             'split': split,
@@ -175,12 +207,42 @@ for idx in range(len(clas_fields), n_rows*n_cols):
 ############
 # Multilabel
 ############
+def get_best_thresholds_multilabel(y_true: np.ndarray, y_pred_probs: np.ndarray) -> np.ndarray:
+    """
+    Calcola la soglia ottimale per ciascuna classe in un problema multilabel.
+    Args:
+        y_true: array shape (num_samples, num_classes), valori 0/1
+        y_pred_probs: array shape (num_samples, num_classes), probabilità predette
+        
+    Returns:
+        thresholds: array shape (num_classes,), soglia ottimale per ciascuna classe
+    """
+    num_classes = y_true.shape[1]
+    thresholds = []
+
+    for i in range(num_classes):
+        precisions, recalls, ths = precision_recall_curve(y_true[:, i], y_pred_probs[:, i])
+        f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-8)
+        if len(ths) > 0:
+            thresholds.append(ths[np.argmax(f1_scores)])
+        else:
+            thresholds.append(0.5)  # fallback se la classe è assente
+    return thresholds
+
+
 multi_fields = results['info']['multiple_choice_fields']
 df = []
 for field in multi_fields:
+    thresholds = None
+    if USE_SCORES:
+        # Trova soglie ottimali
+        thresholds = get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
         predicted = np.array(results[split]['predicted'][field])
         actual = np.array(results[split]['actual'][field])
+        if thresholds is not None:
+            thresholds = np.array(thresholds)
+            predicted = (predicted > thresholds).astype(int)
         m = {
             'field': field,
             'split': split,
@@ -200,6 +262,7 @@ for field in multi_fields:
                 'split': split,
                 'f1_macro': f1_score(actual[:, i], predicted[:, i], average='macro', zero_division=0),
                 'f1': f1_score(actual[:, i], predicted[:, i], zero_division=0),
+                'best_threshold': thresholds[i] if thresholds is not None else None
             }
             df.append(pd.Series(m))
             """
