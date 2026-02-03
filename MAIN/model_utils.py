@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args
 from constants import NAN_VALUE
+import json
 
 
 def unwrap_type(t):
@@ -28,7 +29,6 @@ def is_flag_model(t):
         isinstance(unwrap_type(ft), type) and issubclass(unwrap_type(ft), Enum)
         for ft in hints.values()
     )
-
 
 def get_regression_fields(model: type[BaseModel]) -> list[str]:
     """
@@ -231,3 +231,21 @@ def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str
             result.append(id_to_label_map[i])
     return result
 
+def genera_schema_json_per_prompt(model: type[BaseModel]) -> dict:
+    """
+    Genera lo schema JSON per il prompt, basato sui campi del modello Pydantic.
+    """
+    field_values = get_field_values(model)
+    schema = {}
+    for field_name, values in field_values.items():
+        schema[field_name] = {
+            "type": "string" if len(values) <= 10 else "array",
+            "enum": values
+        }
+    return schema
+
+
+if __name__ == "__main__":
+    from constants import Annotations, AnnotationsReduced, AnnotatedReportReduced
+
+    print(json.dumps(genera_schema_json_per_prompt(Annotations), indent=2))

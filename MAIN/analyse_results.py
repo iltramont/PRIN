@@ -35,7 +35,7 @@ finomnia_palette = sns.color_palette(('#db038a',   # Pink
 sns.set_palette(finomnia_palette)
 
 
-with open(base_dir / "data" / RESULTS_FILE, "r") as f:
+with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
     results = json.load(f)
 
 
@@ -294,4 +294,7 @@ total.set_index(['field', 'split'], inplace=True)
 print(total)
 
 if SAVE_RESULTS:
-    total.to_csv(base_dir / "data" / SAVING_FILE)
+    output_path = base_dir / "data" / "metrics"
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    total.to_csv(output_path / SAVING_FILE)

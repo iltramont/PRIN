@@ -225,13 +225,16 @@ results_most_frequent.pop('train')
 results_uniform.pop('train')
 results_stratified.pop('train')
 
-with open(base_dir / 'data' / 'results_baseline_most_frequent.json', "w") as f:
+output_path = base_dir / "data" / "inference"
+output_path.mkdir(parents=True, exist_ok=True)
+
+with open(output_path / 'results_baseline_most_frequent.json', "w") as f:
     json.dump(results_most_frequent, f, indent=4)
     
-with open(base_dir / 'data' / 'results_baseline_uniform.json', "w") as f:
+with open(output_path / 'results_baseline_uniform.json', "w") as f:
     json.dump(results_uniform, f, indent=4)
     
-with open(base_dir / 'data' / 'results_baseline_stratified.json', "w") as f:
+with open(output_path / 'results_baseline_stratified.json', "w") as f:
     json.dump(results_stratified, f, indent=4)
 
 print(f"Results saved")
