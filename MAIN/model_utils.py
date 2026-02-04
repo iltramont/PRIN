@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args
-from constants import NAN_VALUE, Flag
+from constants import NAN_VALUE, Flag, AnnotatedReportReduced
 import json
 from ast import literal_eval
 import pandas as pd
@@ -19,7 +19,6 @@ def unwrap_type(t):
         args = get_args(t)
         return unwrap_type(args[0]) if args else t
     return t
-
 
 def is_optional_type(t):
     return get_origin(t) is Union and type(None) in get_args(t)
@@ -148,7 +147,6 @@ def get_classification_fields(model: type[BaseModel]) -> list[str]:
 
     return classification_fields
 
-
 def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
     field_values = {}
     hints = model.__annotations__
@@ -191,7 +189,6 @@ def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
                     field_values[f"{field_name}_{sub_name}"] = values
 
     return field_values
-
 
 def get_number_of_classes(model: type[BaseModel]) -> dict[str, int]:
     """
@@ -248,7 +245,6 @@ def genera_schema_json_per_prompt(model: type[BaseModel]) -> dict:
         }
     return schema
 
-
 def field_is_flag_model(field: str, model: type[BaseModel]) -> bool:
     field_type = unwrap_type(model.model_fields[field].annotation)
     return is_flag_model(field_type)
@@ -264,7 +260,6 @@ def from_list_to_flags(possible_values: list[str], values: list[str]) -> dict:
         else:
             result[p] = Flag.NO.value
     return result
-
 
 def from_series_to_basemodel(series: pd.Series, ann_model: type[BaseModel]) -> BaseModel:
     data_dict = dict()
@@ -287,14 +282,20 @@ def from_series_to_basemodel(series: pd.Series, ann_model: type[BaseModel]) -> B
             data_dict[field] = v
     return ann_model(**data_dict)
 
-
+def annotated_report_to_mistral_dict(annotated_report: type[BaseModel]) -> dict:
+    assert isinstance(annotated_report, AnnotatedReportReduced)
+    result = {
+        'text': annotated_report.report_text,
+        'labels': dict()
+    }
+    for k, v in annotated_report.report_data.model_dump().items():
+            result['labels'][k] = v
+    return result
+  
+                
 if __name__ == "__main__":
     import pandas as pd
     from constants import Annotations, AnnotatedReportExtended, AnnotationsExtended, AnnotationsReduced
     from pprint import pprint
     import ast
-    base_dir = Path(__file__).parent.parent
-    data = pd.read_csv(base_dir / 'data' / 'train_split.csv')
-    record = from_series_to_basemodel(data.iloc[0], AnnotationsExtended)
-    pprint(record.model_dump())
-    print(record.model_dump_json(indent=4))
+    print(json.dumps(generate_prompt_schema(AnnotationsExtended), indent=4))

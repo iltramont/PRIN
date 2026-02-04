@@ -328,8 +328,8 @@ class AnnotationsExtended(BaseModel):
     coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale
     coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
     # Linfonodi Sospetti
-    linfonodi_sospetti: int
     numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
+    linfonodi_sospetti: int
     sedi_linfonodi: SediLinfonodiFlag
     depositi_tumorali: DepositiTumorali
     # Conclusioni
