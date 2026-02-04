@@ -80,7 +80,12 @@ class PosizioneFlag(BaseModel):
     basso: Flag
     medio: Flag
     alto: Flag
-    giunzione: Flag   
+    giunzione: Flag
+    
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+    )
     
 class InfiltrazioneOrganiDettagli(str, Enum):
     PAVIMENTO_PELVICO =  "pavimento_pelvico"
@@ -90,6 +95,10 @@ class InfiltrazioneOrganiDettagliFlag(BaseModel):
     pavimento_pelvico: Flag
     altro: Flag
     
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+    )
 class SediLinfonodi(str, Enum):
     MESORETTALI = "mesorettali"
     RETTALI_SUPERIORI = "rettali_superiori"
@@ -103,6 +112,11 @@ class SediLinfonodiFlag(BaseModel):
     otturatori: Flag
     iliaci: Flag
     altro: Flag
+    
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+    )
 
 ##################
 # Campi multiclass

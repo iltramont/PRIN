@@ -1,8 +1,12 @@
 from pydantic import BaseModel
 from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args
-from constants import NAN_VALUE
+from constants import NAN_VALUE, Flag
 import json
+from ast import literal_eval
+import pandas as pd
+
+from pathlib import Path
 
 
 def unwrap_type(t):
@@ -245,7 +249,52 @@ def genera_schema_json_per_prompt(model: type[BaseModel]) -> dict:
     return schema
 
 
-if __name__ == "__main__":
-    from constants import Annotations, AnnotationsReduced, AnnotatedReportReduced
+def field_is_flag_model(field: str, model: type[BaseModel]) -> bool:
+    field_type = unwrap_type(model.model_fields[field].annotation)
+    return is_flag_model(field_type)
 
-    print(json.dumps(genera_schema_json_per_prompt(Annotations), indent=2))
+def from_list_to_flags(possible_values: list[str], values: list[str]) -> dict:
+    """
+    Converte una lista di valori in un dizionario di flag per un FlagModel.
+    """
+    result = dict()
+    for p in possible_values:
+        if p in values:
+            result[p] = Flag.SI.value
+        else:
+            result[p] = Flag.NO.value
+    return result
+
+
+def from_series_to_basemodel(series: pd.Series, ann_model: type[BaseModel]) -> BaseModel:
+    data_dict = dict()
+    reg_fields = get_regression_fields(ann_model)
+    mc_fields = get_multiple_choice_fields(ann_model)
+    for field in ann_model.model_fields.keys():
+        v = series[field]
+        if field in reg_fields:
+            if pd.isna(v):
+                data_dict[field] = None
+            else:
+                data_dict[field] = v
+        elif field_is_flag_model(field, ann_model):
+            v = literal_eval(v)
+            possible_values = list(ann_model.model_fields[field].annotation.model_fields.keys())
+            data_dict[field] = from_list_to_flags(possible_values, v)
+        elif field in mc_fields:
+            data_dict[field] = literal_eval(v)
+        else:
+            data_dict[field] = v
+    return ann_model(**data_dict)
+
+
+if __name__ == "__main__":
+    import pandas as pd
+    from constants import Annotations, AnnotatedReportExtended, AnnotationsExtended, AnnotationsReduced
+    from pprint import pprint
+    import ast
+    base_dir = Path(__file__).parent.parent
+    data = pd.read_csv(base_dir / 'data' / 'train_split.csv')
+    record = from_series_to_basemodel(data.iloc[0], AnnotationsExtended)
+    pprint(record.model_dump())
+    print(record.model_dump_json(indent=4))
