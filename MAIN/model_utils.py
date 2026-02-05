@@ -294,8 +294,4 @@ def annotated_report_to_mistral_dict(annotated_report: type[BaseModel]) -> dict:
   
                 
 if __name__ == "__main__":
-    import pandas as pd
-    from constants import Annotations, AnnotatedReportExtended, AnnotationsExtended, AnnotationsReduced
-    from pprint import pprint
-    import ast
-    print(json.dumps(generate_prompt_schema(AnnotationsExtended), indent=4))
+    pass

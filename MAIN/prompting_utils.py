@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from model_utils import get_regression_fields, get_optional_regression_fields, unwrap_type, field_is_flag_model
+import json
 
 
 
@@ -41,10 +42,4 @@ def create_system_prompt(prompt_path: str, annotation_model: type[BaseModel]) ->
 
 
 if __name__ == "__main__":
-    import json
-    from constants import Annotations, AnnotatedReportExtended, AnnotationsExtended, AnnotationsReduced
-    from pprint import pprint
-    import ast
-    from pathlib import Path
-    base_dir = Path(__file__).parent.parent
-    print(create_system_prompt(str(base_dir / "data" / "prompts" / "system_prompt_with_hints_1.txt"), AnnotationsExtended))
+    pass

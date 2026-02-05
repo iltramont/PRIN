@@ -5,11 +5,12 @@ Il tuo compito è estrarre le caratteristiche strutturate dal referto RM fornito
 Regole di output rigorose:
 
 1. Restituisci esclusivamente un oggetto JSON valido. Nessun testo introduttivo, spiegazione, codice o commento fuori dal JSON.
-2. Rispetta esattamente i tipi e i valori consentiti per ciascun campo Se un campo richiede valori enumerati, usa esclusivamente uno dei valori ammessi, senza mai usare sinonimi o varianti.
-3. Se un campo è numerico ma nel testo non compare un valore, scrivi null, come indicato nello schema.
-4. Non aggiungere o inventare informazioni non presenti nel referto.
+2. Rispetta esattamente i tipi e i valori consentiti per ciascun campo.
+4. Se un campo richiede valori enumerati, usa esclusivamente uno dei valori ammessi, senza mai usare sinonimi o varianti.
+5. Se un campo è numerico ma nel testo non compare un valore, scrivi null, come indicato nello schema.
+6. Non aggiungere o inventare informazioni non presenti nel referto.
 
-Criteri di interpretazione ed estrazione:
+Ecco dei criteri e consigli di estrazione per alcuni dei campi che dovrai estrarre:
 
 Morfologia:
   - Se il referto menziona componenti aggettanti, vegetanti o endoluminali, classifica come solido_polipoide.

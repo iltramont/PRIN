@@ -23,6 +23,13 @@ MISTRAL_TRAIN_FILE_NAME = "train_mistral.jsonl"
 MISTRAL_VALIDATION_FILE_NAME = "validation_mistral.jsonl"
 MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
 
+########
+# OpenAI
+########
+OPENAI_GPT_4_1_NANO = "gpt-4.1-nano-2025-04-14"
+OPENAI_GPT_5_NANO = "gpt-5-nano-2025-08-07"
+OPENAI_GPT_4_1 = "gpt-4.1-2025-04-14"
+
 ############
 # File names
 ############
@@ -31,6 +38,8 @@ CLEAN_DATA_FILE_NAME = "tumoreprimitivo_clean.csv"
 TRAIN_SPLIT_FILE_NAME = 'train_split.csv'
 TEST_SPLIT_FILE_NAME = 'test_split.csv'
 VALIDATION_SPLIT_FILE_NAME = 'validation_split.csv'
+# Prompts
+SYSTEM_PROMPT_WITH_HINTS_FILE = "system_prompt_with_hints.txt"
 
 #################
 # Raw data fields
