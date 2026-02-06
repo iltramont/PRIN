@@ -6,10 +6,17 @@ import json
 import matplotlib.pyplot as plt
 import matplotlib
 from pprint import pprint
-from sklearn.metrics import ConfusionMatrixDisplay, f1_score, matthews_corrcoef, confusion_matrix, mean_absolute_error, mean_absolute_percentage_error, precision_recall_curve
+from sklearn.metrics import (ConfusionMatrixDisplay,
+                             f1_score,
+                             matthews_corrcoef,
+                             confusion_matrix,
+                             mean_absolute_error,
+                             mean_absolute_percentage_error,
+                             precision_recall_curve)
 import seaborn as sns
 import math
-
+import constants
+import model_utils
 
 
 ###############
@@ -18,10 +25,12 @@ import math
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-SAVE_RESULTS = True
-RESULTS_FILE = "results_mistral_30.json"
-SAVING_FILE = "metrics_mistral_30.csv"
-USE_SCORES = True  # If True, use scores instead of hard predictions
+SAVE_RESULTS = False
+RESULTS_FILE = "results_gpt-4.1-nano-2025-04-14.jsonl"
+SAVING_FILE = "metrics_gpt-4.1-nano.csv"
+USE_SCORES = False  # If True, use scores instead of hard predictions
+USE_JSONL = True
+ANN_MODEL = constants.AnnotationsExtended
 
 # Set plot style
 plt.style.use('ggplot')
@@ -34,24 +43,42 @@ finomnia_palette = sns.color_palette(('#db038a',   # Pink
                                       '#45c9f5'))  # Light blue
 sns.set_palette(finomnia_palette)
 
-
 with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
-    results = json.load(f)
-
-
-for field, d in results['info']['label_to_id_map'].items():
-    d['id_to_label'] = {int(k): v for k, v in d['id_to_label'].items()}
+    if USE_JSONL:
+        results = [json.loads(line) for line in f]
+        reg_fields = model_utils.get_regression_fields(ANN_MODEL)
+        clas_fields = model_utils.get_classification_fields(ANN_MODEL)
+        multi_fields = model_utils.get_multiple_choice_fields(ANN_MODEL)
+        bin_fields = model_utils.get_binary_classification_fields(ANN_MODEL)
+        label_to_id_map = model_utils.create_label_to_id_map(ANN_MODEL)
+    else:
+        results = json.load(f)
+        for field, d in results['info']['label_to_id_map'].items():
+            d['id_to_label'] = {int(k): v for k, v in d['id_to_label'].items()}
+            reg_fields = results['info']['regression_fields']
+            clas_fields = results['info']['classification_fields']
+            multi_fields = results['info']['multiple_choice_fields']
+            bin_fields = results['info']['binary_classification_fields']
+            label_to_id_map = results['info']['label_to_id_map']
 
 
 ############
 # Regression
 ############
-reg_fields = results['info']['regression_fields']
 rows = []
 for field in reg_fields:
     for split in ('validation', 'test'):
-        predicted = np.array(results[split]['predicted'][field], dtype=object)
-        actual = np.array(results[split]['actual'][field], dtype=object)
+        if USE_JSONL:
+            actual, predicted = [], []
+            for row in results:
+                if row['split'] == split:
+                    actual.append(row['actual'][field])
+                    predicted.append(row['prediction'][field])
+        else:
+            predicted = np.array(results[split]['predicted'][field], dtype=object)
+            actual = np.array(results[split]['actual'][field], dtype=object)
+        if len(predicted) == 0:
+            continue
         # Liste pulite
         act, pred = [], []
         act_missing, pred_missing = [], []
@@ -106,7 +133,6 @@ def get_best_threshold_binary(y_true: np.ndarray, pred_prob: np.ndarray) -> floa
 
 
 
-bin_fields = results['info']['binary_classification_fields']
 #n_cols = 4
 #n_rows = math.ceil(len(bin_fields) / n_cols)
 
@@ -120,8 +146,19 @@ for i, field in enumerate(bin_fields):
         # Trova soglia ottimale
         best_threshold = get_best_threshold_binary(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
-        predicted = np.array(results[split]['predicted'][field])
-        actual = np.array(results[split]['actual'][field])
+        if USE_JSONL:
+            if field not in ANN_MODEL.model_fields.keys():
+                continue
+            actual, predicted = [], []
+            for row in results:
+                if row['split'] == split:
+                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
+        else:
+            predicted = np.array(results[split]['predicted'][field])
+            actual = np.array(results[split]['actual'][field])
+        if len(predicted) == 0:
+            continue
         if best_threshold is not None:
             # Applica soglia
             predicted = (predicted >= best_threshold).astype(int)
@@ -156,7 +193,6 @@ df_binary = pd.DataFrame(df)
 ################
 # Classification
 ################
-clas_fields = results['info']['classification_fields']
 """
 n_cols = 4
 n_rows = math.ceil(len(clas_fields) / n_cols)
@@ -167,8 +203,19 @@ axes = axes.reshape(n_rows, n_cols)
 df = []
 for i, field in enumerate(clas_fields):
     for split in ('validation', 'test'):
-        predicted = np.array(results[split]['predicted'][field])
-        actual = np.array(results[split]['actual'][field])
+        if USE_JSONL:
+            if field not in ANN_MODEL.model_fields.keys():
+                continue
+            actual, predicted = [], []
+            for row in results:
+                if row['split'] == split:
+                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
+        else:
+            predicted = np.array(results[split]['predicted'][field])
+            actual = np.array(results[split]['actual'][field])
+        if len(predicted) == 0:
+            continue
         if USE_SCORES:
             # Convert scores to hard predictions
             predicted = np.argmax(predicted, axis=-1)
@@ -230,16 +277,29 @@ def get_best_thresholds_multilabel(y_true: np.ndarray, y_pred_probs: np.ndarray)
     return thresholds
 
 
-multi_fields = results['info']['multiple_choice_fields']
 df = []
 for field in multi_fields:
     thresholds = None
     if USE_SCORES:
-        # Trova soglie ottimali
-        thresholds = get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
+        # Optimal thresholds
+        thresholds = get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]),
+                                                    np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
-        predicted = np.array(results[split]['predicted'][field])
-        actual = np.array(results[split]['actual'][field])
+        if USE_JSONL:
+            if field not in ANN_MODEL.model_fields.keys():
+                continue
+            actual, predicted = [], []
+            for row in results:
+                if row['split'] == split:
+                    # TODO convertire flag in bits
+                    print(row['actual'][field])
+                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
+        else:
+            predicted = np.array(results[split]['predicted'][field])
+            actual = np.array(results[split]['actual'][field])
+        if len(predicted) == 0:
+            continue
         if thresholds is not None:
             thresholds = np.array(thresholds)
             predicted = (predicted > thresholds).astype(int)
@@ -255,7 +315,7 @@ for field in multi_fields:
         fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
         axes = axes.reshape(n_rows, n_cols)
         """
-        for label, i in results['info']['label_to_id_map'][field]['label_to_id'].items():
+        for label, i in label_to_id_map[field]['label_to_id'].items():
             s = f'{field}_{label}'
             m = {
                 'field': s,
@@ -285,6 +345,8 @@ for field in multi_fields:
         """
 df_multilabel = pd.DataFrame(df)
 
+print(df_multilabel)
+exit()
 
 ######
 # Save

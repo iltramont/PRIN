@@ -76,8 +76,8 @@ def get_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
     for name, field in model.model_fields.items():
         field_type = field.annotation
         origin = get_origin(field_type) or field_type
-        if origin is list:
-            result.append(name)
+        if origin is list or field_is_flag_model(name, model):
+            result.append(name)            
     return result
 
 def get_binary_classification_fields(model: type[BaseModel]) -> list[str]:
@@ -181,6 +181,7 @@ def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
             )
 
             if is_flag_model:
+                field_values[field_name] = list(base_type.model_fields.keys())
                 for sub_name, sub_type in sub_hints.items():
                     sub_base = unwrap_type(sub_type)
                     values = [e.value for e in sub_base]

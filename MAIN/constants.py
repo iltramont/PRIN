@@ -46,6 +46,7 @@ SYSTEM_PROMPT_WITH_HINTS_FILE = "system_prompt_with_hints.txt"
 #################
 REPORT_COLUMN_NAME = "report_text"
 ANNOTATOR_COLUMN_NAME = "profile"
+ID_COMULM_NAME = "id"
 LOW_SIGNIFICANCE_COLUMNS = (
     'carcinosi_peritoneale',
     'lesioni_ossee',

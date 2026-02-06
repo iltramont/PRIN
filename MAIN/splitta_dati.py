@@ -57,7 +57,9 @@ for t in target_columns_extended:
 ###########
 # Splitting
 ###########
-X = data[[constants.REPORT_COLUMN_NAME, constants.ANNOTATOR_COLUMN_NAME] + target_columns].copy(deep=True)
+X = data[[constants.ID_COMULM_NAME,
+          constants.REPORT_COLUMN_NAME,
+          constants.ANNOTATOR_COLUMN_NAME] + target_columns].copy(deep=True)
 print(f'Selezionate solo colonne di interesse\n{X.shape = }\n')
 # Create dummies to stratify (train - test)
 encoder = OneHotEncoder(sparse_output=False)
