@@ -25,7 +25,7 @@ import model_utils
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-SAVE_RESULTS = False
+SAVE_RESULTS = True
 RESULTS_FILE = "results_gpt-4.1-nano-2025-04-14.jsonl"
 SAVING_FILE = "metrics_gpt-4.1-nano.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
@@ -291,10 +291,10 @@ for field in multi_fields:
             actual, predicted = [], []
             for row in results:
                 if row['split'] == split:
-                    # TODO convertire flag in bits
-                    print(row['actual'][field])
-                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
-                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
+                    actual.append(model_utils.flags_to_bits(row['actual'][field]))
+                    predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
+            actual = np.array(actual)
+            predicted = np.array(predicted)
         else:
             predicted = np.array(results[split]['predicted'][field])
             actual = np.array(results[split]['actual'][field])
@@ -345,8 +345,6 @@ for field in multi_fields:
         """
 df_multilabel = pd.DataFrame(df)
 
-print(df_multilabel)
-exit()
 
 ######
 # Save

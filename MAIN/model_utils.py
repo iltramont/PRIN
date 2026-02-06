@@ -99,11 +99,11 @@ def get_binary_classification_fields(model: type[BaseModel]) -> list[str]:
             continue
 
         # Escludi multilabel (liste)
-        if name in multiple_choice_fields:
+        if name in multiple_choice_fields and not is_flag_model(field_type):
             continue
 
         # Caso 1: campo normale → binario se num_classes == 2
-        if num_classes.get(name, 0) == 2:
+        if num_classes.get(name, 0) == 2 and not is_flag_model(field_type):
             binary_fields.append(name)
             continue
 
@@ -293,6 +293,25 @@ def annotated_report_to_mistral_dict(annotated_report: type[BaseModel]) -> dict:
             result['labels'][k] = v
     return result
   
+def flags_to_bits(flags: dict[str, str]) -> list[int]:
+    result = []
+    for k, v in flags.items():
+        if v == Flag.SI.value:
+            result.append(1)
+        else:
+            result.append(0)
+    return result
                 
 if __name__ == "__main__":
-    pass
+    import constants
+    model_type = constants.Annotations
+    reg_fields = get_regression_fields(model_type)
+    cl_fields = get_classification_fields(model_type)
+    mc_fields = get_multiple_choice_fields(model_type)
+    bc_fields = get_binary_classification_fields(model_type)
+    label_to_id_map = create_label_to_id_map(model_type)
+    mc_fields_estesi = []
+    for field in get_binary_classification_fields(constants.AnnotationsExtended):
+        if field not in bc_fields:
+            mc_fields_estesi.append(field)
+    print(mc_fields_estesi)
