@@ -39,7 +39,8 @@ TRAIN_SPLIT_FILE_NAME = 'train_split.csv'
 TEST_SPLIT_FILE_NAME = 'test_split.csv'
 VALIDATION_SPLIT_FILE_NAME = 'validation_split.csv'
 # Prompts
-SYSTEM_PROMPT_WITH_HINTS_FILE = "system_prompt_with_hints.txt"
+SYSTEM_PROMPT = "system_prompt.txt"
+SYSTEM_PROMPT_2 = "system_prompt_2.txt"
 
 #################
 # Raw data fields
