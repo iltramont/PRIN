@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
+from PIL import Image
 
 
 from pprint import pprint
@@ -29,16 +30,20 @@ from scipy import stats
 # Preliminaries
 ###############
 base_dir = Path(__file__).parent.parent
-os.makedirs(base_dir / "immagini", exist_ok=True)
-image_dir = base_dir / "immagini"
 #matplotlib.use("QtAgg")
 # Parameters
 SAVE_RESULTS = True
 RESULTS_FILE = "results_gpt-4.1-nano-2025-04-14.jsonl"
 SAVING_FILE = "metrics_gpt-4.1-nano.csv"
+MODEL_NAME_PLOT = "GPT 4.1"
+
+os.makedirs(base_dir / "immagini" / "gpt-4.1-nano", exist_ok=True)
+image_dir = base_dir / "immagini" / "gpt-4.1-nano"
+
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
 ANN_MODEL = constants.AnnotationsExtended
+
 
 # Set plot style
 plt.style.use('ggplot')
@@ -106,11 +111,15 @@ def plot_cm_seaborn(ax, y_true, y_pred, labels=None, normalize=False):
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             base = base_color_matrix[i, j]
-            if cm[i, j] == 0:
-                # blend 85% verso bianco
-                color_matrix[i, j] = 0.85 * white + 0.15 * base
+            v = cm[i, j]
+            bland_color = 0.95 * white + 0.05 * base
+            if v == 0:
+                color_matrix[i, j] = bland_color
             else:
-                color_matrix[i, j] = base
+                sum_row    = cm[i, :].sum()
+                sum_column = cm[:, j].sum()
+                ratio = v/(sum_row + sum_column - v)
+                color_matrix[i, j] = ratio * base + (1-ratio) * white
 
     # Heatmap "vuota" (useremo i nostri colori)
     sns.heatmap(
@@ -135,62 +144,52 @@ def plot_cm_seaborn(ax, y_true, y_pred, labels=None, normalize=False):
                 edgecolor='none'
             ))
 
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("True")
-    ax.set_title("Confusion Matrix" + (" (normalized)" if normalize else ""))
+    ax.set_xlabel("Predicted", fontsize='small')
+    ax.set_ylabel("True", fontsize='small')
+    ax.set_title("Confusion Matrix" + (" (normalized)" if normalize else ""), fontsize='large')
 
 
 ############
 # Regression
 ############
 rows = []
+saved_paths = []
 for field in reg_fields:
+    break
     # Plotting
-    fig = plt.figure(figsize=(14, 7))
-    axes = []
-
-    # Titolo globale della figura
-    fig.suptitle("Titolo della Figura Principale", fontsize=16)
-
+    figsize = np.array((21, 9))
+    top    = 0.8
+    bottom = 0.1
+    left   = 0.02
+    hspace = 0.6
+    wspace = 0.1
+    
+    fig = plt.figure(figsize=figsize)
+    fig.patch.set_facecolor("#beb088")      # o qualsiasi colore
+    
     # Griglia principale: 2 righe, 1 colonna
-    outer = gridspec.GridSpec(2, 1, hspace=0.35)
-
-    # ============================================================
-    # RIGA 1 — contiene 5 subsubplot
-    # ============================================================
-
-    # Asse contenitore invisibile per il titolo della riga
-    ax_top_container = fig.add_subplot(outer[0])
-    ax_top_container.set_title("Titolo della Riga Superiore", fontsize=13)
-    ax_top_container.axis("off")
-
-    # Griglia interna 1×5
-    inner_top = gridspec.GridSpecFromSubplotSpec(
-        1, 5, subplot_spec=outer[0], wspace=0.3
-    )
-
-    for i in range(5):
-        ax = fig.add_subplot(inner_top[0, i])
-        axes.append(ax)
-
-    # ============================================================
-    # RIGA 2 — contiene 5 subsubplot
-    # ============================================================
-
-    ax_bottom_container = fig.add_subplot(outer[1])
-    ax_bottom_container.set_title("Titolo della Riga Inferiore", fontsize=13)
-    ax_bottom_container.axis("off")
-
-    inner_bottom = gridspec.GridSpecFromSubplotSpec(
-        1, 5, subplot_spec=outer[1], wspace=0.3
-    )
-
-    for i in range(5):
-        ax = fig.add_subplot(inner_bottom[0, i])
-        axes.append(ax)
+    
+    fig.subplots_adjust(top=top, bottom=bottom, hspace=hspace, left=left, right=1-left)
+    outer        = gridspec.GridSpec(2, 1)
+    inner_top    = gridspec.GridSpecFromSubplotSpec(1, 6, subplot_spec=outer[0], wspace=wspace)
+    inner_bottom = gridspec.GridSpecFromSubplotSpec(1, 6, subplot_spec=outer[1], wspace=wspace)
+    
+    axes = []
+    for inner in [inner_top, inner_bottom]:
+        for i in range(6):
+            ax = fig.add_subplot(inner[0, i])
+            ax.set_box_aspect(1)
+            axes.append(ax)
             
     i_plot = 0
-        
+    figtitle = f'{field} - {MODEL_NAME_PLOT}'
+    fig.suptitle(figtitle, fontsize="xx-large", y=1-0.05, fontweight="bold")
+    fig.text(0.5, top+0.05, "Validation split",
+            ha="center", va="center", fontsize='x-large', fontweight="bold")
+
+    fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
+            ha="center", va="center", fontsize='x-large', fontweight="bold")
+
     for split in ('validation', 'test'):
         if USE_JSONL:
             actual, predicted = [], []
@@ -223,24 +222,28 @@ for field in reg_fields:
                 pred.append(p)
         act = np.array(act)
         pred = np.array(pred)
-        # MAPE: rimuovi gli zeri da y_true
-        act_mape = np.array([x for x in act if x != 0])
-        pred_mape = np.array([p for x, p in zip(act, pred) if x != 0])
+        act_missing = ['missing' if x==1 else 'present' for x in act_missing]
+        pred_missing = ['missing' if x==1 else 'present' for x in pred_missing]
         
         # Plotting
-        
-        title = f'{field} - {split}'
-        fig.suptitle(title, fontsize="xx-large")
         residuals = act - pred
 
+        # Inference confusion matrix
         ax = axes[i_plot]
         labels = list(set(list(int(x) for x in act_str + pred_str if x != 'None')))
         labels.sort()
         labels.insert(0, None)
         labels = [str(x) for x in labels]
-        
-        plot_cm_seaborn(ax, act_str, pred_str, labels)
+        if len(labels) <= 15:
+            plot_cm_seaborn(ax, act_str, pred_str, labels)
         i_plot += 1
+        
+        # Missing confusion matrix
+        ax = axes[i_plot]
+        plot_cm_seaborn(ax, act_missing, pred_missing, labels=['present', 'missing'])
+        ax.set_title('Missing detection', fontsize='large')
+        i_plot += 1
+        
         if len(act) <= 0:
             i_plot += 4
         else:
@@ -249,7 +252,9 @@ for field in reg_fields:
                 for a, p in zip(act, pred)
             ]
             # 1. Scatter y_true vs y_pred
-            jitter_strength = 0.02 * (act.max() - act.min())
+            rng = act.max() - act.min()
+            jitter_strength = 0.01 * rng if rng > 0 else 1e-3
+
             ax = axes[i_plot]
             act_j = act + np.random.normal(0, jitter_strength, size=len(act))
             pred_j = pred + np.random.normal(0, jitter_strength, size=len(pred))
@@ -262,13 +267,13 @@ for field in reg_fields:
             
             ax.plot([act.min(), act.max()], [act.min(), act.max()], color=finomnia_palette[-1], linestyle="--")
             
-            ax.set_title("y_true vs y_pred")
-            ax.set_xlabel("y_true")
-            ax.set_ylabel("y_pred")
+            ax.set_title("y_true vs y_pred", fontsize='large')
+            ax.set_xlabel("y_true", fontsize='small')
+            ax.set_ylabel("y_pred", fontsize='small')
             i_plot += 1
             
             # 2. Residual plot
-            jitter_strength = 0.02 * (residuals.max() - residuals.min())
+            jitter_strength = 0.01 * (residuals.max() - residuals.min())
             res_j = residuals + np.random.normal(0, jitter_strength, size=len(residuals))
             pred_j = pred + np.random.normal(0, jitter_strength, size=len(pred))
             ax = axes[i_plot]
@@ -278,17 +283,18 @@ for field in reg_fields:
             ax.legend(handles=[correct_patch, wrong_patch])
             
             ax.axhline(0, color=finomnia_palette[-1], linestyle="--")
-            ax.set_title("Residual plot")
-            ax.set_xlabel("y_pred")
-            ax.set_ylabel("Residuals")
+            ax.set_title("Residual plot", fontsize='large')
+            ax.set_xlabel("y_pred", fontsize='small')
+            ax.set_ylabel("Residuals", fontsize='small')
             i_plot += 1
             
             # 3. Histogram of residuals
             ax = axes[i_plot]
             ax.hist(residuals, bins=30, alpha=0.7)
-            ax.set_title("Residual distribution")
-            ax.set_xlabel("Residual")
-            ax.set_ylabel("Count")
+            ax.set_title("Residual distribution", fontsize='large')
+            ax.set_xlabel("Residual", fontsize='small')
+            ax.set_ylabel("Count", fontsize='small')
+            ax.grid(axis='x')
             i_plot += 1
             
             # 4. QQ-plot
@@ -307,9 +313,9 @@ for field in reg_fields:
             mu, sigma = residuals.mean(), residuals.std()
             ax.plot(theoretical, mu + sigma * theoretical, linestyle="--", color=finomnia_palette[-1])
             # Titoli
-            ax.set_title("QQ-plot of residuals")
-            ax.set_xlabel("Theoretical quantiles")
-            ax.set_ylabel("Ordered residuals")
+            ax.set_title("QQ-plot of residuals", fontsize='large')
+            ax.set_xlabel("Theoretical quantiles", fontsize='small')
+            ax.set_ylabel("Ordered residuals", fontsize='small')
             # Legenda
             correct_patch = mpatches.Patch(color=finomnia_palette[-1], label="Correct")
             wrong_patch   = mpatches.Patch(color=finomnia_palette[0],  label="Wrong")
@@ -317,13 +323,28 @@ for field in reg_fields:
             i_plot += 1
             
 
-    plt.tight_layout()
-    plt.savefig(image_dir / f'{field}')
-    #plt.show()
-        
+    out_path = image_dir / f"{field}.png"
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    saved_paths.append(out_path)
+"""
+imgs = [Image.open(p) for p in saved_paths]
 
+# Altezza totale
+extra_h = int(imgs[0].height / 20)
+total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
+# Larghezza massima
+max_w = max(img.width for img in imgs) + 2 * extra_h
+combined = Image.new("RGB", (max_w, total_h), color="white")
 
-exit()
+y_offset = extra_h
+for img in imgs:
+    combined.paste(img, (extra_h, y_offset))
+    y_offset += img.height + extra_h
+
+combined.save(image_dir / "regression_fields.png")
+for p in saved_paths:
+    p.unlink(missing_ok=True)
+"""
 
 #######################
 # Binary Classification
@@ -350,14 +371,46 @@ def get_best_threshold_binary(y_true: np.ndarray, pred_prob: np.ndarray) -> floa
 
 
 
-#n_cols = 4
-#n_rows = math.ceil(len(bin_fields) / n_cols)
+n_cols = 6
+n_rows = math.ceil(len(bin_fields) / n_cols)
 
-#fig, axes = plt.subplots(n_rows, n_cols, figsize=(4*n_cols, 4*n_rows))
-#axes = axes.reshape(n_rows, n_cols)
+# Plotting
+figsize = np.array((21, 9))
+top    = 0.8
+bottom = 0.1
+left   = 0.02
+hspace = 0.6
+wspace = 0.1
 
-df = []
+fig = plt.figure(figsize=figsize)
+fig.patch.set_facecolor("#beb088")      # o qualsiasi colore
+
+# Griglia principale: 
+
+fig.subplots_adjust(top=top, bottom=bottom, hspace=hspace, left=left, right=1-left)
+outer        = gridspec.GridSpec(2, 1)
+inner_top    = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[0], wspace=wspace)
+inner_bottom = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[1], wspace=wspace)
+
+axes = []
+for inner in [inner_top, inner_bottom]:
+    for i in range(n_rows):
+        for j in range(n_cols):
+            ax = fig.add_subplot(inner[i, j])
+            ax.set_box_aspect(1)
+            axes.append(ax)
+        
+i_plot = 0
+figtitle = f'{MODEL_NAME_PLOT}'
+fig.suptitle(figtitle, fontsize="xx-large", y=1-0.05, fontweight="bold")
+fig.text(0.5, top+0.05, "Validation split",
+        ha="center", va="center", fontsize='x-large', fontweight="bold")
+
+fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
+        ha="center", va="center", fontsize='x-large', fontweight="bold")
+
 for i, field in enumerate(bin_fields):
+    i_plot = 0
     best_threshold = None
     if USE_SCORES:
         # Trova soglia ottimale
@@ -379,33 +432,18 @@ for i, field in enumerate(bin_fields):
         if best_threshold is not None:
             # Applica soglia
             predicted = (predicted >= best_threshold).astype(int)
-        m = {
-            'field': field,
-            'split': split, 
-            'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
-            'f1': f1_score(actual, predicted, zero_division=0),
-            'mcc': matthews_corrcoef(actual, predicted),
-            'best_threshold': best_threshold
-        }
-        #cm = confusion_matrix(actual, predicted)
-        df.append(pd.Series(m))
-        # PLot confusion matrix
-        #r = i // n_cols
-        #c = i % n_cols
-        #ax = axes[r, c]
-        #sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, cbar=False, square=True)
-        #ax.grid(False)
-        #ax.set_title(field)
-        #ax.set_xlabel("Predicted")
-        #ax.set_ylabel("Actual")
-df_binary = pd.DataFrame(df)
-    #for idx in range(len(bin_fields), n_rows*n_cols):
-    #    r = idx // n_cols
-    #    c = idx % n_cols
-    #    axes[r, c].axis("off")
-
-#plt.show()
-
+            
+        actual    = [label_to_id_map[field]['id_to_label'][x] for x in actual]
+        predicted = [label_to_id_map[field]['id_to_label'][x] for x in predicted]
+        
+        ax = axes[i_plot]
+        labels = [label_to_id_map[field]['id_to_label'][0], label_to_id_map[field]['id_to_label'][1]]
+        plot_cm_seaborn(ax, actual, predicted, labels=labels)
+        ax.set_title(field, fontsize='large')
+        i_plot += 1
+    
+plt.show()
+exit()
 
 ################
 # Classification
