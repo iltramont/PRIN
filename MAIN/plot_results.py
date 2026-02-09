@@ -64,6 +64,7 @@ with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
         multi_fields = model_utils.get_multiple_choice_fields(ANN_MODEL)
         bin_fields = model_utils.get_binary_classification_fields(ANN_MODEL)
         label_to_id_map = model_utils.create_label_to_id_map(ANN_MODEL)
+        bin_fields = [x for x in bin_fields if x in ANN_MODEL.model_fields.keys()]
     else:
         results = json.load(f)
         for field, d in results['info']['label_to_id_map'].items():
@@ -144,18 +145,20 @@ def plot_cm_seaborn(ax, y_true, y_pred, labels=None, normalize=False):
                 edgecolor='none'
             ))
 
-    ax.set_xlabel("Predicted", fontsize='small')
-    ax.set_ylabel("True", fontsize='small')
+    ax.set_xlabel("Predicted", fontsize='xx-small')
+    ax.set_ylabel("True", fontsize='xx-small')
     ax.set_title("Confusion Matrix" + (" (normalized)" if normalize else ""), fontsize='large')
+
+
+saved_paths = []
 
 
 ############
 # Regression
 ############
 rows = []
-saved_paths = []
+
 for field in reg_fields:
-    break
     # Plotting
     figsize = np.array((21, 9))
     top    = 0.8
@@ -326,7 +329,8 @@ for field in reg_fields:
     out_path = image_dir / f"{field}.png"
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     saved_paths.append(out_path)
-"""
+    
+
 imgs = [Image.open(p) for p in saved_paths]
 
 # Altezza totale
@@ -344,8 +348,9 @@ for img in imgs:
 combined.save(image_dir / "regression_fields.png")
 for p in saved_paths:
     p.unlink(missing_ok=True)
-"""
 
+
+saved_paths = []
 #######################
 # Binary Classification
 #######################
@@ -369,9 +374,7 @@ def get_best_threshold_binary(y_true: np.ndarray, pred_prob: np.ndarray) -> floa
     best_threshold = thresholds[best_index]
     return float(best_threshold)
 
-
-
-n_cols = 6
+n_cols = 5
 n_rows = math.ceil(len(bin_fields) / n_cols)
 
 # Plotting
@@ -389,8 +392,8 @@ fig.patch.set_facecolor("#beb088")      # o qualsiasi colore
 
 fig.subplots_adjust(top=top, bottom=bottom, hspace=hspace, left=left, right=1-left)
 outer        = gridspec.GridSpec(2, 1)
-inner_top    = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[0], wspace=wspace)
-inner_bottom = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[1], wspace=wspace)
+inner_top    = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[0], wspace=wspace, hspace=hspace)
+inner_bottom = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[1], wspace=wspace, hspace=hspace)
 
 axes = []
 for inner in [inner_top, inner_bottom]:
@@ -400,8 +403,7 @@ for inner in [inner_top, inner_bottom]:
             ax.set_box_aspect(1)
             axes.append(ax)
         
-i_plot = 0
-figtitle = f'{MODEL_NAME_PLOT}'
+figtitle = f'Binary fields - {MODEL_NAME_PLOT}'
 fig.suptitle(figtitle, fontsize="xx-large", y=1-0.05, fontweight="bold")
 fig.text(0.5, top+0.05, "Validation split",
         ha="center", va="center", fontsize='x-large', fontweight="bold")
@@ -410,7 +412,6 @@ fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
         ha="center", va="center", fontsize='x-large', fontweight="bold")
 
 for i, field in enumerate(bin_fields):
-    i_plot = 0
     best_threshold = None
     if USE_SCORES:
         # Trova soglia ottimale
@@ -436,13 +437,39 @@ for i, field in enumerate(bin_fields):
         actual    = [label_to_id_map[field]['id_to_label'][x] for x in actual]
         predicted = [label_to_id_map[field]['id_to_label'][x] for x in predicted]
         
+        if split == 'validation':
+            i_plot = i
+        else:
+            i_plot = i + n_cols * n_rows
         ax = axes[i_plot]
         labels = [label_to_id_map[field]['id_to_label'][0], label_to_id_map[field]['id_to_label'][1]]
         plot_cm_seaborn(ax, actual, predicted, labels=labels)
-        ax.set_title(field, fontsize='large')
-        i_plot += 1
+        ax.set_title(field, fontsize='small')
+        ax.set_xlabel("Predicted", fontsize='xx-small')
+        ax.set_ylabel("True", fontsize='xx-small')
     
-plt.show()
+out_path = image_dir / f"bin_fields.png"
+plt.savefig(out_path, dpi=300, bbox_inches="tight")
+saved_paths.append(out_path)
+
+imgs = [Image.open(p) for p in saved_paths]
+
+# Altezza totale
+extra_h = int(imgs[0].height / 20)
+total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
+# Larghezza massima
+max_w = max(img.width for img in imgs) + 2 * extra_h
+combined = Image.new("RGB", (max_w, total_h), color="white")
+
+y_offset = extra_h
+for img in imgs:
+    combined.paste(img, (extra_h, y_offset))
+    y_offset += img.height + extra_h
+
+combined.save(image_dir / "binary_fields.png")
+for p in saved_paths:
+    p.unlink(missing_ok=True)
+
 exit()
 
 ################
