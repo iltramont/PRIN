@@ -32,16 +32,14 @@ from scipy import stats
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-SAVE_RESULTS = True
-RESULTS_FILE = "results_gpt-4.1-nano-2025-04-14.jsonl"
-SAVING_FILE = "metrics_gpt-4.1-nano.csv"
-MODEL_NAME_PLOT = "GPT 4.1"
+RESULTS_FILE = "results_mistral_30.json"
+MODEL_NAME_PLOT = "Ministral - classifier factory"
 
-os.makedirs(base_dir / "immagini" / "gpt-4.1-nano", exist_ok=True)
-image_dir = base_dir / "immagini" / "gpt-4.1-nano"
+os.makedirs(base_dir / "immagini" / "mistral_30", exist_ok=True)
+image_dir = base_dir / "immagini" / "mistral_30"
 
-USE_SCORES = False  # If True, use scores instead of hard predictions
-USE_JSONL = True
+USE_SCORES = True  # If True, use scores instead of hard predictions
+USE_JSONL = False
 ANN_MODEL = constants.AnnotationsExtended
 
 
@@ -151,7 +149,6 @@ def plot_cm_seaborn(ax, y_true, y_pred, labels=None, normalize=False):
 
 
 saved_paths = []
-
 
 ############
 # Regression
@@ -330,27 +327,26 @@ for field in reg_fields:
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     saved_paths.append(out_path)
     
+if len(saved_paths) > 0:
+    imgs = [Image.open(p) for p in saved_paths]
 
-imgs = [Image.open(p) for p in saved_paths]
+    # Altezza totale
+    extra_h = int(imgs[0].height / 20)
+    total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
+    # Larghezza massima
+    max_w = max(img.width for img in imgs) + 2 * extra_h
+    combined = Image.new("RGB", (max_w, total_h), color="white")
 
-# Altezza totale
-extra_h = int(imgs[0].height / 20)
-total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
-# Larghezza massima
-max_w = max(img.width for img in imgs) + 2 * extra_h
-combined = Image.new("RGB", (max_w, total_h), color="white")
+    y_offset = extra_h
+    for img in imgs:
+        combined.paste(img, (extra_h, y_offset))
+        y_offset += img.height + extra_h
 
-y_offset = extra_h
-for img in imgs:
-    combined.paste(img, (extra_h, y_offset))
-    y_offset += img.height + extra_h
-
-combined.save(image_dir / "regression_fields.png")
-for p in saved_paths:
-    p.unlink(missing_ok=True)
+    combined.save(image_dir / "regression_fields.png")
+    for p in saved_paths:
+        p.unlink(missing_ok=True)
 
 
-saved_paths = []
 #######################
 # Binary Classification
 #######################
@@ -378,6 +374,8 @@ n_cols = 5
 n_rows = math.ceil(len(bin_fields) / n_cols)
 
 # Plotting
+saved_paths = []
+
 figsize = np.array((21, 9))
 top    = 0.8
 bottom = 0.1
@@ -470,19 +468,49 @@ combined.save(image_dir / "binary_fields.png")
 for p in saved_paths:
     p.unlink(missing_ok=True)
 
-exit()
 
 ################
 # Classification
 ################
-"""
-n_cols = 4
+n_cols = min(5, len(clas_fields))
 n_rows = math.ceil(len(clas_fields) / n_cols)
 
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
-axes = axes.reshape(n_rows, n_cols)
-"""
-df = []
+# Plotting
+saved_paths = []
+
+figsize = np.array((21, 9))
+top    = 0.8
+bottom = 0.1
+left   = 0.02
+hspace = 0.6
+wspace = 0.1
+
+fig = plt.figure(figsize=figsize)
+fig.patch.set_facecolor("#beb088")      # o qualsiasi colore
+
+# Griglia principale: 
+
+fig.subplots_adjust(top=top, bottom=bottom, hspace=hspace, left=left, right=1-left)
+outer        = gridspec.GridSpec(2, 1)
+inner_top    = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[0], wspace=wspace, hspace=hspace)
+inner_bottom = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[1], wspace=wspace, hspace=hspace)
+
+axes = []
+for inner in [inner_top, inner_bottom]:
+    for i in range(n_rows):
+        for j in range(n_cols):
+            ax = fig.add_subplot(inner[i, j])
+            ax.set_box_aspect(1)
+            axes.append(ax)
+        
+figtitle = f'Multi-class fields - {MODEL_NAME_PLOT}'
+fig.suptitle(figtitle, fontsize="xx-large", y=1-0.05, fontweight="bold")
+fig.text(0.5, top+0.05, "Validation split",
+        ha="center", va="center", fontsize='x-large', fontweight="bold")
+
+fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
+        ha="center", va="center", fontsize='x-large', fontweight="bold")
+
 for i, field in enumerate(clas_fields):
     for split in ('validation', 'test'):
         if USE_JSONL:
@@ -501,36 +529,42 @@ for i, field in enumerate(clas_fields):
         if USE_SCORES:
             # Convert scores to hard predictions
             predicted = np.argmax(predicted, axis=-1)
-        m = {
-            'field': field,
-            'split': split,
-            'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
-            'mcc': matthews_corrcoef(actual, predicted)
-        }
-        df.append(pd.Series(m))
-    """
-    labels = list(results['info']['label_to_id_map'][field]['id_to_label'].values())
-    y_pred = [results['info']['label_to_id_map'][field]['id_to_label'][i] for i in predicted]
-    y_true = [results['info']['label_to_id_map'][field]['id_to_label'][i] for i in actual] 
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
-    # PLot confusion matrix
-    r = i // n_cols
-    c = i % n_cols
-    ax = axes[r, c]
-    sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, cbar=False, square=True, xticklabels=labels, yticklabels=labels)
-    ax.grid(False)
-    ax.set_title(field)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    """
-df_classification = pd.DataFrame(df)
-"""
-for idx in range(len(clas_fields), n_rows*n_cols):
-    r = idx // n_cols
-    c = idx % n_cols
-    axes[r, c].axis("off")
-"""
-#plt.show()
+        
+        # Convert to strings
+        actual    = [label_to_id_map[field]['id_to_label'][x] for x in actual]
+        predicted = [label_to_id_map[field]['id_to_label'][x] for x in predicted]
+        
+        if split == 'validation':
+            i_plot = i
+        else:
+            i_plot = i + n_cols * n_rows
+        ax = axes[i_plot]
+        labels = [l for l in label_to_id_map[field]['label_to_id'].keys()]
+        plot_cm_seaborn(ax, actual, predicted, labels=labels)
+        ax.set_title(field, fontsize='small')
+    
+out_path = image_dir / f"clas_fields.png"
+plt.savefig(out_path, dpi=300, bbox_inches="tight")
+saved_paths.append(out_path)
+
+imgs = [Image.open(p) for p in saved_paths]
+
+# Altezza totale
+extra_h = int(imgs[0].height / 20)
+total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
+# Larghezza massima
+max_w = max(img.width for img in imgs) + 2 * extra_h
+combined = Image.new("RGB", (max_w, total_h), color="white")
+
+y_offset = extra_h
+for img in imgs:
+    combined.paste(img, (extra_h, y_offset))
+    y_offset += img.height + extra_h
+
+combined.save(image_dir / "classification_fields.png")
+for p in saved_paths:
+    p.unlink(missing_ok=True)
+
 
 
 ############
@@ -559,8 +593,47 @@ def get_best_thresholds_multilabel(y_true: np.ndarray, y_pred_probs: np.ndarray)
     return thresholds
 
 
-df = []
+saved_paths = []
 for field in multi_fields:
+    # Plotting
+    
+    n_cols = len(label_to_id_map[field]['label_to_id'])
+    n_rows = 1
+    
+    figsize = np.array((21, 9))
+    top    = 0.8
+    bottom = 0.1
+    left   = 0.02
+    hspace = 0.6
+    wspace = 0.1
+    
+    fig = plt.figure(figsize=figsize)
+    fig.patch.set_facecolor("#beb088")      # o qualsiasi colore
+    
+    # Griglia principale: 2 righe, 1 colonna
+    
+    fig.subplots_adjust(top=top, bottom=bottom, hspace=hspace, left=left, right=1-left)
+    outer        = gridspec.GridSpec(2, 1)
+    inner_top    = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[0], wspace=wspace)
+    inner_bottom = gridspec.GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=outer[1], wspace=wspace)
+    
+    axes = []
+    for inner in [inner_top, inner_bottom]:
+        for i in range(n_rows):
+            for j in range(n_cols):
+                ax = fig.add_subplot(inner[i, j])
+                ax.set_box_aspect(1)
+                axes.append(ax)
+            
+    i_plot = 0
+    figtitle = f'{field} - {MODEL_NAME_PLOT}'
+    fig.suptitle(figtitle, fontsize="xx-large", y=1-0.05, fontweight="bold")
+    fig.text(0.5, top+0.05, "Validation split",
+            ha="center", va="center", fontsize='x-large', fontweight="bold")
+
+    fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
+            ha="center", va="center", fontsize='x-large', fontweight="bold")    
+
     thresholds = None
     if USE_SCORES:
         # Optimal thresholds
@@ -585,58 +658,33 @@ for field in multi_fields:
         if thresholds is not None:
             thresholds = np.array(thresholds)
             predicted = (predicted > thresholds).astype(int)
-        m = {
-            'field': field,
-            'split': split,
-            'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
-            'f1_samples': f1_score(actual, predicted, average='samples', zero_division=0)
-        }
-        df.append(pd.Series(m))
-        """n_cols = 3
-        n_rows = math.ceil(len(results['info']['label_to_id_map'][field]['label_to_id']) / n_cols)
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
-        axes = axes.reshape(n_rows, n_cols)
-        """
+            
         for label, i in label_to_id_map[field]['label_to_id'].items():
             s = f'{field}_{label}'
-            m = {
-                'field': s,
-                'split': split,
-                'f1_macro': f1_score(actual[:, i], predicted[:, i], average='macro', zero_division=0),
-                'f1': f1_score(actual[:, i], predicted[:, i], zero_division=0),
-                'best_threshold': thresholds[i] if thresholds is not None else None
-            }
-            df.append(pd.Series(m))
-            """
-            cm = confusion_matrix(actual[:, i], predicted[:, i])
-            # PLot confusion matrix
-            r = i // n_cols
-            c = i % n_cols
-            ax = axes[r, c]
-            sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, cbar=False, square=True)
-            ax.grid(False)
-            ax.set_title(f"{label}")
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("Actual")
-        for idx in range(len(results['info']['label_to_id_map'][field]['label_to_id']), n_rows*n_cols):
-            r = idx // n_cols
-            c = idx % n_cols
-            axes[r, c].axis("off")
-        fig.suptitle(field, fontsize="xx-large")
-        plt.show()
-        """
-df_multilabel = pd.DataFrame(df)
+            ax = axes[i_plot]
+            plot_cm_seaborn(ax, actual[:, i], predicted[:, i])
+            i_plot += 1
+            ax.set_title(f'{label}', fontsize='large')
+    
+    out_path = image_dir / f"{field}.png"
+    plt.savefig(out_path, dpi=300, bbox_inches="tight")
+    saved_paths.append(out_path)
+        
+imgs = [Image.open(p) for p in saved_paths]
 
+# Altezza totale
+extra_h = int(imgs[0].height / 20)
+total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
+# Larghezza massima
+max_w = max(img.width for img in imgs) + 2 * extra_h
+combined = Image.new("RGB", (max_w, total_h), color="white")
 
-######
-# Save
-######
-total = pd.concat([df_reg, df_binary, df_classification, df_multilabel], ignore_index=True)
-total.set_index(['field', 'split'], inplace=True)
-print(total)
+y_offset = extra_h
+for img in imgs:
+    combined.paste(img, (extra_h, y_offset))
+    y_offset += img.height + extra_h
 
-if SAVE_RESULTS:
-    output_path = base_dir / "data" / "metrics"
-    output_path.mkdir(parents=True, exist_ok=True)
+combined.save(image_dir / "multilabel_fields.png")
+for p in saved_paths:
+    p.unlink(missing_ok=True)
 
-    total.to_csv(output_path / SAVING_FILE)
