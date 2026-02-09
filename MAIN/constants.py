@@ -27,8 +27,9 @@ MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
 # OpenAI
 ########
 OPENAI_GPT_4_1_NANO = "gpt-4.1-nano-2025-04-14"
-OPENAI_GPT_5_NANO = "gpt-5-nano-2025-08-07"
+OPENAI_GPT_4_1_MINI = "gpt-4.1-mini-2025-04-14"
 OPENAI_GPT_4_1 = "gpt-4.1-2025-04-14"
+OPENAI_GPT_5_NANO = "gpt-5-nano-2025-08-07"
 
 ############
 # File names

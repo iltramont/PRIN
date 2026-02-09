@@ -26,8 +26,8 @@ base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
 SAVE_RESULTS = True
-RESULTS_FILE = "results_gpt-4.1-nano-2025-04-14.jsonl"
-SAVING_FILE = "metrics_gpt-4.1-nano.csv"
+RESULTS_FILE = "results_gpt-4.1-2025-04-14.jsonl"
+SAVING_FILE = "metrics_gpt-4.1.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
 ANN_MODEL = constants.AnnotationsExtended
