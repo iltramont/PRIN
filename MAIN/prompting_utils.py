@@ -36,7 +36,7 @@ def create_system_prompt(prompt_path: str, annotation_model: type[BaseModel]) ->
     with open(prompt_path, 'r', encoding='utf-8') as f:
         system_prompt = f.read()
         
-    schema = json.dumps(generate_prompt_schema(annotation_model), indent=2)
+    schema = json.dumps(generate_prompt_schema(annotation_model), indent=None)
     system_prompt = system_prompt.replace("{schema_json}", schema)
     return system_prompt
 

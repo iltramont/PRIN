@@ -42,6 +42,7 @@ VALIDATION_SPLIT_FILE_NAME = 'validation_split.csv'
 # Prompts
 SYSTEM_PROMPT = "system_prompt.txt"
 SYSTEM_PROMPT_2 = "system_prompt_2.txt"
+SYSTEM_PROMPT_3 = "system_prompt_3.txt"
 
 #################
 # Raw data fields
@@ -88,7 +89,7 @@ class Posizione(str, Enum):
     ALTO = "alto"
     GIUNZIONE = "giunzione"
     
-class PosizioneFlag(BaseModel):
+class PosizioneFlags(BaseModel):
     basso: Flag
     medio: Flag
     alto: Flag
@@ -103,7 +104,7 @@ class InfiltrazioneOrganiDettagli(str, Enum):
     PAVIMENTO_PELVICO =  "pavimento_pelvico"
     ALTRO = "altro"
 
-class InfiltrazioneOrganiDettagliFlag(BaseModel):
+class InfiltrazioneOrganiDettagliFlags(BaseModel):
     pavimento_pelvico: Flag
     altro: Flag
     
@@ -118,7 +119,7 @@ class SediLinfonodi(str, Enum):
     ILIACI = "iliaci"
     ALTRO = "altro"
     
-class SediLinfonodiFlag(BaseModel):
+class SediLinfonodiFlags(BaseModel):
     mesorettali: Flag
     rettali_superiori: Flag
     otturatori: Flag
@@ -203,6 +204,60 @@ class NumeroLinfonodiNonConosciuto(str, Enum):
 class DepositiTumorali(str, Enum):
     NO = "no"
     SI = "si"
+    
+    
+   
+########################################################################
+# Modello completo con anche campi numerici. Campi multilabel come flag.
+########################################################################
+class RectalCancerStagingData(BaseModel):
+    # Tumore primitivo
+    morfologia: Morfologia = Field(description='Morfologia del tumore')
+    ore_inizio: Optional[int] = None
+    ore_fine: Optional[int] = None
+    spessore_parietale: Optional[int] = Field(default=None, description="Spessore parietale massimo (mm)")
+    estensione_cranio_caudale: Optional[int] = Field(default=None, description='Estensione cranio-caudale (mm)')
+    distanza_oai: Optional[int] = Field(default=None, description="Distanza tra il margine inferiore del tumore e l'Orifizio Anale Interno (giunzione ano-rettale) (mm)")
+    posizione: PosizioneFlags = Field(description="Posizione del tumore")
+    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore = Field(description="Relazione con la riflessione peritoneale anteriore")
+    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo = Field(description="Infiltrazione del tessuto adiposo")
+    infiltrazione_sfinteri: InfiltrazioneSfinteri = Field(description="Infiltrazione degli sfinteri")
+    infiltrazione_organi_extra: InfiltrazioneOrganiExtra = Field(description="Infiltrazione altri organi / strutture extra-mesorettali")
+    infiltrazione_organi_dettagli: InfiltrazioneOrganiDettagliFlags = Field(description="Altri organi coinvolti")
+    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale = Field(description="Coinvolgimento riflessione peritoneale/peritoneo")
+    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale = Field(description="Coinvolgimento fascia mesorettale")
+    # Linfonodi Sospetti
+    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto = Field(description="Indica se il numero di linfonodi sospetti è conosciuto o non conosciuto")
+    linfonodi_sospetti: int = Field(description="Numero di linfonodi sospetti")
+    sedi_linfonodi: SediLinfonodiFlags = Field(description="Sedi dei linfonodi sospetti")
+    depositi_tumorali: DepositiTumorali = Field(description="Presenza di depositi tumorali")
+    # Conclusioni
+    emvi: EMVI = Field(description="Extra Mural Vascular Invasion, infiltrazione diretta dei vasi mesorettali")
+    stadio_T: StadioT = Field(description="Stadiazione T secondo TNM (invasione locale del tumore)")
+    stadio_N: StadioN = Field(description="Stadiazione linfonodale secondo TNM")
+    stadio_N1c: StadioN1c = Field(description="Presenza di depositi tumorali")
+    mrf: MRF = Field(description="Infiltrazione della fascia mesorettale")
+    metastasi: Metastasi = Field(description="Stadiazione M secondo TNM (metastasi a distanza)")
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+        extra="forbid"
+    )
+
+class AnnotatedRectalCancerReport(BaseModel):
+    report_text: str
+    report_data: RectalCancerStagingData
+
+    model_config = ConfigDict(
+        use_enum_values=True,
+        validate_assignment=True,
+        extra="forbid"
+    )    
+    
+    
+    
+    
 
 ########################################################################
 # Modello completo con anche campi numerici. Campi multilabel come liste
@@ -319,49 +374,11 @@ class AnnotatedReportReduced(BaseModel):
         validate_assignment=True,
     )
     
-    
-########################################################################
-# Modello completo con anche campi numerici. Campi multilabel come flag.
-########################################################################
-class AnnotationsExtended(BaseModel):
-    # Tumore primitivo
-    morfologia: Morfologia
-    ore_inizio: Optional[int] = None
-    ore_fine: Optional[int] = None
-    spessore_parietale: Optional[int] = None
-    estensione_cranio_caudale: Optional[int] = None
-    distanza_oai: Optional[int] = None
-    posizione: PosizioneFlag
-    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
-    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo
-    infiltrazione_sfinteri: InfiltrazioneSfinteri
-    infiltrazione_organi_extra: InfiltrazioneOrganiExtra
-    infiltrazione_organi_dettagli: InfiltrazioneOrganiDettagliFlag
-    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale
-    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
-    # Linfonodi Sospetti
-    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
-    linfonodi_sospetti: int
-    sedi_linfonodi: SediLinfonodiFlag
-    depositi_tumorali: DepositiTumorali
-    # Conclusioni
-    emvi: EMVI  
-    stadio_T: StadioT
-    stadio_N: StadioN  
-    stadio_N1c: StadioN1c
-    mrf: MRF
-    metastasi: Metastasi
 
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-    )
 
-class AnnotatedReportExtended(BaseModel):
-    report_text: str
-    report_data: AnnotationsExtended
 
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-    )
+if __name__ == '__main__':
+    from openai.lib._pydantic import to_strict_json_schema
+    from pprint import pprint
+    schema = to_strict_json_schema(RectalCancerStagingData)
+    pprint(schema)

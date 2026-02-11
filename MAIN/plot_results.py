@@ -32,15 +32,15 @@ from scipy import stats
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-RESULTS_FILE = "results_gpt-4.1-2025-04-14.jsonl"
-MODEL_NAME_PLOT = "GPT 4.1"
+RESULTS_FILE = "results_2_gpt-4.1-2025-04-14.jsonl"
+MODEL_NAME_PLOT = "GPT 4.1 - prompt v2"
 
-os.makedirs(base_dir / "immagini" / "gpt-4.1", exist_ok=True)
-image_dir = base_dir / "immagini" / "gpt-4.1"
+os.makedirs(base_dir / "immagini" / "gpt-4.1-v2", exist_ok=True)
+image_dir = base_dir / "immagini" / "gpt-4.1-v2"
 
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
-ANN_MODEL = constants.AnnotationsExtended
+ANN_MODEL = constants.RectalCancerStagingData
 
 
 # Set plot style
