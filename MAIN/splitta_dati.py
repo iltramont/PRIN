@@ -48,7 +48,7 @@ print(f'{data.shape = }')
 
 # Keep only report and target columns
 target_columns = list(constants.Annotations.model_fields.keys())
-target_columns_extended = model_utils.get_binary_classification_fields(constants.AnnotationsExtended)
+target_columns_extended = model_utils.get_binary_classification_fields(constants.RectalCancerStagingData)
 for t in target_columns_extended:
     if t not in target_columns:
         target_columns.append(t)

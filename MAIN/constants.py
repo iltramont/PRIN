@@ -28,13 +28,20 @@ MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
 ########
 OPENAI_GPT_4_1_NANO = "gpt-4.1-nano-2025-04-14"
 OPENAI_GPT_4_1_MINI = "gpt-4.1-mini-2025-04-14"
-OPENAI_GPT_4_1 = "gpt-4.1-2025-04-14"
-OPENAI_GPT_5_NANO = "gpt-5-nano-2025-08-07"
+OPENAI_GPT_4_1      = "gpt-4.1-2025-04-14"
+OPENAI_GPT_5_NANO   = "gpt-5-nano-2025-08-07"
+
+# Tuned models
+TUNED_GPT_4_1_NANO = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:D8F5Ak8z"
+
+OPENAI_TRAIN_FILE_NAME      = "openai_train.jsonl"
+OPENAI_VALIDATION_FILE_NAME = "openai_validation.jsonl"
+
 
 ############
 # File names
 ############
-RAW_DATA_FILE_NAME = "base.tumoreprimitivo_finale.csv"
+RAW_DATA_FILE_NAME = "base.tumoreprimitivo_febbraio.csv"
 CLEAN_DATA_FILE_NAME = "tumoreprimitivo_clean.csv"
 TRAIN_SPLIT_FILE_NAME = 'train_split.csv'
 TEST_SPLIT_FILE_NAME = 'test_split.csv'
@@ -43,6 +50,7 @@ VALIDATION_SPLIT_FILE_NAME = 'validation_split.csv'
 SYSTEM_PROMPT = "system_prompt.txt"
 SYSTEM_PROMPT_2 = "system_prompt_2.txt"
 SYSTEM_PROMPT_3 = "system_prompt_3.txt"
+SYSTEM_PROMPT_4 = "system_prompt_4.txt"
 
 #################
 # Raw data fields

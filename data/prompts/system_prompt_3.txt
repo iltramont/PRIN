@@ -42,3 +42,6 @@ Regole generali su ambiguità:
   - Se un’informazione è implicita ma non chiaramente affermata, scegli il valore più prudente (minore estensione / classe inferiore), salvo le eccezioni sopra specificate per T3 con digitazioni.
   - Non stimare o inventare valori numerici mancanti.
   - Se testo e conclusione sono in contraddizione, prevale la conclusione clinica riportata.
+
+Schema JSON per l'output:
+{schema_json}

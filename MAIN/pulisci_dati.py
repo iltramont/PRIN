@@ -81,7 +81,8 @@ print(f'{data_clean.shape = }')
 # Consistency adjustments
 #########################
 # --- Stadio T --- #
-# Correggiamo l'anomalia
+# Correggiamo l'anomalia (Corretta con intervento di Ilaria)
+"""
 data_clean.loc[
     (data_clean['stadio_T'].isna()) &
     (data_clean['coinvolgimento_riflessione_peritoneale'] == 'rischio')
@@ -105,6 +106,7 @@ data_clean.loc[
     (data_clean['infiltrazione_tessuto_adiposo'] == 'no')
     , 'stadio_T'
     ] = 'T1-2'
+"""
 
 # --- Stadio N and lymph nodes --- #
 # Stadio N valorizzato con "N1c". Anomalo solo il referto 44.
@@ -140,6 +142,13 @@ data_clean.loc[
 
 # Anomalia. Se i linfonodi sospetti sono 0, non posso avere le sedi valorizzate.
 # Dando un'occhiata ai referti si osserva come il modo corretto per risolvere l'anomalia è quello di valorizzare a True il campo numero_linfonodi_non_conosciuto.
+data_clean.loc[
+    (data_clean['linfonodi_sospetti'] == 0) &
+    (data_clean['numero_linfonodi_non_conosciuto'] == False) &
+    ((data_clean['sedi_locoregionali'] != '[]') | (data_clean['sedi_non_locoregionali'] != '[]'))
+    , 'stadio_N'
+    ] = constants.StadioN.N_PLUS.value
+
 data_clean.loc[
     (data_clean['linfonodi_sospetti'] == 0) &
     (data_clean['numero_linfonodi_non_conosciuto'] == False) &
