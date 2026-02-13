@@ -23,6 +23,8 @@ MISTRAL_TRAIN_FILE_NAME = "train_mistral.jsonl"
 MISTRAL_VALIDATION_FILE_NAME = "validation_mistral.jsonl"
 MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
 
+MISTRAL_LARGE_3 = "mistral-large-latest"
+
 ########
 # OpenAI
 ########
@@ -33,9 +35,18 @@ OPENAI_GPT_5_NANO   = "gpt-5-nano-2025-08-07"
 
 # Tuned models
 TUNED_GPT_4_1_NANO = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:D8F5Ak8z"
+TUNED_GPT_4_1 = ""
 
 OPENAI_TRAIN_FILE_NAME      = "openai_train.jsonl"
 OPENAI_VALIDATION_FILE_NAME = "openai_validation.jsonl"
+OPENAI_TRAIN_OVERSAMPLING_FILE_NAME = "openai_train_oversampling.jsonl"
+
+
+###########
+# Anthropic
+###########
+CLAUDE_OPUS_4_6 = "claude-opus-4-6"
+
 
 
 ############
