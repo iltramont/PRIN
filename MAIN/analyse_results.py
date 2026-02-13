@@ -25,8 +25,8 @@ import model_utils
 base_dir = Path(__file__).parent.parent
 # Parameters
 SAVE_RESULTS = True
-RESULTS_FILE = "results_opus-4.6.jsonl"
-SAVING_FILE = "metrics_opus-4.6.csv"
+RESULTS_FILE = "results_gpt-4.1-tuned-oversampling.jsonl"
+SAVING_FILE = "metrics_gpt-4.1-tuned-oversampling.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
 ANN_MODEL = constants.RectalCancerStagingData

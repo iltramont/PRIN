@@ -35,7 +35,8 @@ OPENAI_GPT_5_NANO   = "gpt-5-nano-2025-08-07"
 
 # Tuned models
 TUNED_GPT_4_1_NANO = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:D8F5Ak8z"
-TUNED_GPT_4_1 = ""
+TUNED_GPT_4_1_NANO_OVERSAMPLING = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:D8k71VLO"
+TUNED_GPT_4_1_OVERSAMPLING = "ft:gpt-4.1-2025-04-14:luca-tramonti:report-extractor:D8nTVX9B"
 
 OPENAI_TRAIN_FILE_NAME      = "openai_train.jsonl"
 OPENAI_VALIDATION_FILE_NAME = "openai_validation.jsonl"
