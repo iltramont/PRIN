@@ -42,4 +42,11 @@ def create_system_prompt(prompt_path: str, annotation_model: type[BaseModel]) ->
 
 
 if __name__ == "__main__":
-    pass
+    from pathlib import Path
+    import constants
+    SYSTEM_PROMPT_FILE_NAME = constants.SYSTEM_PROMPT_4
+
+    base_dir = Path(__file__).parent.parent
+    system_prompt_path = base_dir / "data" / "prompts" / SYSTEM_PROMPT_FILE_NAME
+    system_prompt = create_system_prompt(system_prompt_path, constants.RectalCancerStagingData)
+    print(system_prompt)

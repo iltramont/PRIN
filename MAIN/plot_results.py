@@ -32,11 +32,11 @@ from scipy import stats
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-RESULTS_FILE = "results_gpt-5-nano.jsonl"
-MODEL_NAME_PLOT = "GPT 5 Nano"
+RESULTS_FILE = "results_gpt-5.2.jsonl"
+MODEL_NAME_PLOT = "GPT 5.2"
 
-os.makedirs(base_dir / "immagini" / "gpt-5-nano", exist_ok=True)
-image_dir = base_dir / "immagini" / "gpt-5-nano"
+os.makedirs(base_dir / "immagini" / "gpt-5.2", exist_ok=True)
+image_dir = base_dir / "immagini" / "gpt-5.2"
 
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
