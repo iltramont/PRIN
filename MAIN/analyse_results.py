@@ -131,13 +131,6 @@ def get_best_threshold_binary(y_true: np.ndarray, pred_prob: np.ndarray) -> floa
     return float(best_threshold)
 
 
-
-#n_cols = 4
-#n_rows = math.ceil(len(bin_fields) / n_cols)
-
-#fig, axes = plt.subplots(n_rows, n_cols, figsize=(4*n_cols, 4*n_rows))
-#axes = axes.reshape(n_rows, n_cols)
-
 df = []
 for i, field in enumerate(bin_fields):
     best_threshold = None
@@ -169,36 +162,13 @@ for i, field in enumerate(bin_fields):
             'mcc': matthews_corrcoef(actual, predicted),
             'best_threshold': best_threshold
         }
-        #cm = confusion_matrix(actual, predicted)
         df.append(pd.Series(m))
-        # PLot confusion matrix
-        #r = i // n_cols
-        #c = i % n_cols
-        #ax = axes[r, c]
-        #sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, cbar=False, square=True)
-        #ax.grid(False)
-        #ax.set_title(field)
-        #ax.set_xlabel("Predicted")
-        #ax.set_ylabel("Actual")
 df_binary = pd.DataFrame(df)
-    #for idx in range(len(bin_fields), n_rows*n_cols):
-    #    r = idx // n_cols
-    #    c = idx % n_cols
-    #    axes[r, c].axis("off")
-
-#plt.show()
 
 
 ################
 # Classification
 ################
-"""
-n_cols = 4
-n_rows = math.ceil(len(clas_fields) / n_cols)
-
-fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
-axes = axes.reshape(n_rows, n_cols)
-"""
 df = []
 for i, field in enumerate(clas_fields):
     for split in ('validation', 'test'):
@@ -225,29 +195,7 @@ for i, field in enumerate(clas_fields):
             'mcc': matthews_corrcoef(actual, predicted)
         }
         df.append(pd.Series(m))
-    """
-    labels = list(results['info']['label_to_id_map'][field]['id_to_label'].values())
-    y_pred = [results['info']['label_to_id_map'][field]['id_to_label'][i] for i in predicted]
-    y_true = [results['info']['label_to_id_map'][field]['id_to_label'][i] for i in actual] 
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
-    # PLot confusion matrix
-    r = i // n_cols
-    c = i % n_cols
-    ax = axes[r, c]
-    sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, cbar=False, square=True, xticklabels=labels, yticklabels=labels)
-    ax.grid(False)
-    ax.set_title(field)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    """
 df_classification = pd.DataFrame(df)
-"""
-for idx in range(len(clas_fields), n_rows*n_cols):
-    r = idx // n_cols
-    c = idx % n_cols
-    axes[r, c].axis("off")
-"""
-#plt.show()
 
 
 ############
@@ -309,11 +257,6 @@ for field in multi_fields:
             'f1_samples': f1_score(actual, predicted, average='samples', zero_division=0)
         }
         df.append(pd.Series(m))
-        """n_cols = 3
-        n_rows = math.ceil(len(results['info']['label_to_id_map'][field]['label_to_id']) / n_cols)
-        fig, axes = plt.subplots(n_rows, n_cols, figsize=(5*n_cols, 5*n_rows))
-        axes = axes.reshape(n_rows, n_cols)
-        """
         for label, i in label_to_id_map[field]['label_to_id'].items():
             s = f'{field}_{label}'
             m = {
@@ -324,24 +267,6 @@ for field in multi_fields:
                 'best_threshold': thresholds[i] if thresholds is not None else None
             }
             df.append(pd.Series(m))
-            """
-            cm = confusion_matrix(actual[:, i], predicted[:, i])
-            # PLot confusion matrix
-            r = i // n_cols
-            c = i % n_cols
-            ax = axes[r, c]
-            sns.heatmap(cm, annot=True, cmap='Blues', ax=ax, cbar=False, square=True)
-            ax.grid(False)
-            ax.set_title(f"{label}")
-            ax.set_xlabel("Predicted")
-            ax.set_ylabel("Actual")
-        for idx in range(len(results['info']['label_to_id_map'][field]['label_to_id']), n_rows*n_cols):
-            r = idx // n_cols
-            c = idx % n_cols
-            axes[r, c].axis("off")
-        fig.suptitle(field, fontsize="xx-large")
-        plt.show()
-        """
 df_multilabel = pd.DataFrame(df)
 
 
@@ -355,5 +280,4 @@ print(total)
 if SAVE_RESULTS:
     output_path = base_dir / "data" / "metrics"
     output_path.mkdir(parents=True, exist_ok=True)
-
     total.to_csv(output_path / SAVING_FILE)
