@@ -36,6 +36,8 @@ RESULT_FILES = (
     'results_gpt-4.1-tuned-oversampling.jsonl',
     'results_gpt-5-nano.jsonl',
     'results_gpt-5.2.jsonl',
+    'results_gpt-5.2-reasoning.jsonl',
+    'results_gpt-5.2-low-reasoning.jsonl',
     'results_mistral_large_3.jsonl',
     'results_opus-4.6.jsonl'
 )

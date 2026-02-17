@@ -23,7 +23,7 @@ MISTRAL_TRAIN_FILE_NAME = "train_mistral.jsonl"
 MISTRAL_VALIDATION_FILE_NAME = "validation_mistral.jsonl"
 MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
 
-MISTRAL_LARGE_3 = "mistral-large-latest"
+MISTRAL_LARGE_3 = "mistral-large-2512"
 
 ########
 # OpenAI

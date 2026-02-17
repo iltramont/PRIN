@@ -25,8 +25,8 @@ import model_utils
 base_dir = Path(__file__).parent.parent
 # Parameters
 SAVE_RESULTS = True
-RESULTS_FILE = "results_gpt-5.2.jsonl"
-SAVING_FILE = "metrics_gpt-5.2.csv"
+RESULTS_FILE = "results_gpt-5.2-low-reasoning.jsonl"
+SAVING_FILE = "metrics_gpt-5.2-low-reasoning.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
 ANN_MODEL = constants.RectalCancerStagingData
