@@ -14,6 +14,10 @@ XLM_ROBERTA_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-base"
 XLM_ROBERTA_LARGE_ENCODER_CHECKPOINT = "FacebookAI/xlm-roberta-large"
 BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
 
+############
+# Embeddings
+############
+MISTRAL_EMBED = "mistral-embed-2312"
 
 #########
 # Mistral
