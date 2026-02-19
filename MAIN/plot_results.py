@@ -32,11 +32,11 @@ from scipy import stats
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-RESULTS_FILE = "results_gpt-5.2-low-reasoning.jsonl"
-MODEL_NAME_PLOT = "GPT 5.2 - low reasoning"
+RESULTS_FILE = "results_opus-4.6_similar_examples.jsonl"
+MODEL_NAME_PLOT = "Claude Opus 4.6 - Few shots"
 
-os.makedirs(base_dir / "immagini" / "gpt-5.2-low-reasoning", exist_ok=True)
-image_dir = base_dir / "immagini" / "gpt-5.2-low-reasoning"
+os.makedirs(base_dir / "immagini" / "opus-4.6_similar_examples", exist_ok=True)
+image_dir = base_dir / "immagini" / "opus-4.6_similar_examples"
 
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True

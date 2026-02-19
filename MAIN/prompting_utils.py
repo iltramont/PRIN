@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from model_utils import get_regression_fields, get_optional_regression_fields, unwrap_type, field_is_flag_model
 import json
+from constants import AnnotatedRectalCancerReport
 
 
 
@@ -41,12 +42,66 @@ def create_system_prompt(prompt_path: str, annotation_model: type[BaseModel]) ->
     return system_prompt
 
 
+def add_examples_to_user_prompt(user_report_text: str, examples: list[AnnotatedRectalCancerReport]) -> str:
+    parts = []
+    if examples:
+        parts.append("## Esempi\n")
+        for i, ex in enumerate(examples, 1):
+            parts.append(f'### Esempio {i}')
+            parts.append(f"**Referto:**\n{ex.report_text}")
+            parts.append(f"**Output:**\n{ex.report_data.model_dump_json()}")
+        
+    parts.append("## Referto da analizzare")
+    parts.append(f"**Referto:**\n{user_report_text}")
+    parts.append("**Output:**")
+    
+    return "\n\n".join(parts)
+    
+    
+
+
+
 if __name__ == "__main__":
     from pathlib import Path
     import constants
-    SYSTEM_PROMPT_FILE_NAME = constants.SYSTEM_PROMPT_4
-
+    import pandas as pd
+    import model_utils
     base_dir = Path(__file__).parent.parent
-    system_prompt_path = base_dir / "data" / "prompts" / SYSTEM_PROMPT_FILE_NAME
-    system_prompt = create_system_prompt(system_prompt_path, constants.RectalCancerStagingData)
-    print(system_prompt)
+
+    # Carichiamo i nostri file csv
+    file_names = {
+        'validation': constants.VALIDATION_SPLIT_FILE_NAME,
+        'test': constants.TEST_SPLIT_FILE_NAME,
+    }
+
+    paths = {split: base_dir / "data" / file_name for split, file_name in file_names.items()}
+
+    data = dict()
+    for split, path in paths.items():
+        data[split] = pd.read_csv(path)
+
+    validation_data, test_data = data['validation'], data['test']
+
+    ################################
+    # Convert float columns to Int64
+    ################################
+    float_cols = test_data.select_dtypes("float").columns
+    for col in float_cols:
+        test_data[col] = test_data[col].round().astype("Int64")
+        validation_data[col] = validation_data[col].round().astype("Int64")
+        
+    # Check duplicatest
+    assert set(test_data.id) & set(validation_data.id) == set(), "There are overlapping IDs between test and validation sets!"
+
+    print(f"{len(test_data) = }")
+    print(f"{len(validation_data) = }")
+    
+    user_text = test_data.iloc[0].report_text
+    report_data = model_utils.from_series_to_basemodel(test_data.iloc[1], constants.RectalCancerStagingData)
+    text = test_data.iloc[1].report_text
+    ann_report = AnnotatedRectalCancerReport(report_text=text, report_data=report_data)
+    report_data = model_utils.from_series_to_basemodel(test_data.iloc[2], constants.RectalCancerStagingData)
+    text = test_data.iloc[2].report_text
+    ann_report_2 = AnnotatedRectalCancerReport(report_text=text, report_data=report_data)
+    print(add_examples_to_user_prompt(text, [ann_report, ann_report_2]))
+    

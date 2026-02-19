@@ -17,6 +17,7 @@ BIOBERT_ITALIAN_ENCODER = "IVN-RIN/bioBIT"
 ############
 # Embeddings
 ############
+EMBEDDING_FILE_NAME_MISTRAL = "mistral_embeddings.jsonl"
 MISTRAL_EMBED = "mistral-embed-2312"
 
 #########
