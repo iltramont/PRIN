@@ -40,7 +40,8 @@ RESULT_FILES = (
     'results_gpt-5.2-low-reasoning.jsonl',
     'results_mistral_large_3.jsonl',
     'results_opus-4.6.jsonl',
-    'results_opus-4.6_similar_examples.jsonl'
+    'results_opus-4.6_similar_examples.jsonl',
+    'results_opus-4.6_MMR.jsonl'
 )
 
 # Set plot style

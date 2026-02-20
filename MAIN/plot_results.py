@@ -32,11 +32,11 @@ from scipy import stats
 base_dir = Path(__file__).parent.parent
 #matplotlib.use("QtAgg")
 # Parameters
-RESULTS_FILE = "results_opus-4.6_similar_examples.jsonl"
-MODEL_NAME_PLOT = "Claude Opus 4.6 - Few shots"
+RESULTS_FILE = "results_opus-4.6_MMR.jsonl"
+MODEL_NAME_PLOT = "Claude Opus 4.6 - Few shots MMR"
 
-os.makedirs(base_dir / "immagini" / "opus-4.6_similar_examples", exist_ok=True)
-image_dir = base_dir / "immagini" / "opus-4.6_similar_examples"
+os.makedirs(base_dir / "immagini" / "opus-4.6_MMR", exist_ok=True)
+image_dir = base_dir / "immagini" / "opus-4.6_MMR"
 
 USE_SCORES = False  # If True, use scores instead of hard predictions
 USE_JSONL = True
