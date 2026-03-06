@@ -138,6 +138,7 @@ class InfiltrazioneOrganiDettagliFlags(BaseModel):
         use_enum_values=True,
         validate_assignment=True,
     )
+    
 class SediLinfonodi(str, Enum):
     MESORETTALI = "mesorettali"
     RETTALI_SUPERIORI = "rettali_superiori"
@@ -182,11 +183,6 @@ class StadioT(str, Enum):
     T4A = "T4a"
     T4B = "T4b"
     
-class StadioN(str, Enum):
-    N0 = "N0"
-    N1 = "N1"
-    N2 = "N2"
-    N_PLUS = "N+"
 
 ##############    
 # Campi binari
@@ -198,6 +194,12 @@ class CoinvolgimentoFasciaMesorettale(str, Enum):
 class CoinvolgimentoRiflessionePeritoneale(str, Enum):
     NO = "no"
     SI = "si"
+    
+class StadioN(str, Enum):
+    N0 = "N0"
+    #N1 = "N1"
+    #N2 = "N2"
+    N_PLUS = "N+"
     
 class StadioN1c(str, Enum):
     NO = "no"
@@ -280,126 +282,6 @@ class AnnotatedRectalCancerReport(BaseModel):
         validate_assignment=True,
         extra="forbid"
     )    
-    
-    
-    
-    
-
-########################################################################
-# Modello completo con anche campi numerici. Campi multilabel come liste
-########################################################################
-class Annotations(BaseModel):
-    # Tumore primitivo
-    morfologia: Morfologia
-    ore_inizio: Optional[int] = None
-    ore_fine: Optional[int] = None
-    spessore_parietale: Optional[int] = None
-    estensione_cranio_caudale: Optional[int] = None
-    distanza_oai: Optional[int] = None
-    posizione: List[Posizione] = Field(default_factory=list)
-    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
-    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo
-    infiltrazione_sfinteri: InfiltrazioneSfinteri
-    infiltrazione_organi_extra: InfiltrazioneOrganiExtra
-    infiltrazione_organi_dettagli: List[InfiltrazioneOrganiDettagli] = Field(default_factory=list)
-    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale
-    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
-    # Linfonodi Sospetti
-    linfonodi_sospetti: int
-    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
-    sedi_linfonodi: List[SediLinfonodi] = Field(default_factory=list)
-    depositi_tumorali: DepositiTumorali
-    # Conclusioni
-    emvi: EMVI  
-    stadio_T: StadioT
-    stadio_N: StadioN  
-    stadio_N1c: StadioN1c
-    mrf: MRF
-    metastasi: Metastasi
-
-
-    @field_validator(
-        "posizione",
-        "infiltrazione_organi_dettagli",
-        "sedi_linfonodi",
-        mode="before",
-    )
-    @classmethod
-    def unique_list(cls, v: Any):
-        if not isinstance(v, list):
-            return v
-        return list(dict.fromkeys(v))
-
-
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-    )
-    
-    
-class AnnotatedReport(BaseModel):
-    report_text: str
-    report_data: Annotations
-
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-    )
-    
-
-##############################
-# Modello senza campi numerici
-##############################
-class AnnotationsReduced(BaseModel):
-    # Tumore primitivo
-    morfologia: Morfologia
-    posizione: List[Posizione] = Field(default_factory=list)
-    riflessione_peritoneale_anteriore: RiflessionePeritonealeAnteriore
-    infiltrazione_tessuto_adiposo: InfiltrazioneTessutoAdiposo
-    infiltrazione_sfinteri: InfiltrazioneSfinteri
-    infiltrazione_organi_extra: InfiltrazioneOrganiExtra
-    infiltrazione_organi_dettagli: List[InfiltrazioneOrganiDettagli] = Field(default_factory=list)
-    coinvolgimento_riflessione_peritoneale: CoinvolgimentoRiflessionePeritoneale
-    coinvolgimento_fascia_mesorettale: CoinvolgimentoFasciaMesorettale
-    # Linfonodi Sospetti
-    #linfonodi_sospetti: int  # linfonodi sospetti si potrebbe discretizzare e far diventare categorico
-    numero_linfonodi_non_conosciuto: NumeroLinfonodiNonConosciuto
-    sedi_linfonodi: List[SediLinfonodi] = Field(default_factory=list)
-    depositi_tumorali: DepositiTumorali
-    # Conclusioni
-    emvi: EMVI  
-    stadio_T: StadioT
-    stadio_N: StadioN  
-    stadio_N1c: StadioN1c
-    mrf: MRF
-    metastasi: Metastasi
-    
-    @field_validator(
-        "posizione",
-        "infiltrazione_organi_dettagli",
-        "sedi_linfonodi",
-        mode="before",
-    )
-    @classmethod
-    def unique_list(cls, v: Any):
-        if not isinstance(v, list):
-            return v
-        return list(dict.fromkeys(v))    
-
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-    )
-
-class AnnotatedReportReduced(BaseModel):
-    report_text: str
-    report_data: AnnotationsReduced
-
-    model_config = ConfigDict(
-        use_enum_values=True,
-        validate_assignment=True,
-    )
-    
 
 
 

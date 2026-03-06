@@ -1,37 +1,13 @@
 from pydantic import BaseModel
 from enum import Enum
 from typing import Union, get_type_hints, get_origin, get_args
-from constants import NAN_VALUE, Flag, AnnotatedReportReduced
+from constants import NAN_VALUE, Flag
 import json
 from ast import literal_eval
 import pandas as pd
 
 from pathlib import Path
 
-
-def unwrap_type(t):
-    """Rimuove Optional, Union e List, restituendo il tipo base."""
-    origin = get_origin(t)
-    if origin is Union:
-        args = [a for a in get_args(t) if a is not type(None)]
-        return unwrap_type(args[0]) if args else t
-    if origin is list:
-        args = get_args(t)
-        return unwrap_type(args[0]) if args else t
-    return t
-
-def is_optional_type(t):
-    return get_origin(t) is Union and type(None) in get_args(t)
-
-def is_flag_model(t):
-    """Riconosce un FlagModel: BaseModel i cui campi sono tutti Enum."""
-    if not (isinstance(t, type) and issubclass(t, BaseModel)):
-        return False
-    hints = t.__annotations__
-    return all(
-        isinstance(unwrap_type(ft), type) and issubclass(unwrap_type(ft), Enum)
-        for ft in hints.values()
-    )
 
 def get_regression_fields(model: type[BaseModel]) -> list[str]:
     """
@@ -55,141 +31,108 @@ def get_regression_fields(model: type[BaseModel]) -> list[str]:
 
 def get_optional_regression_fields(model: type[BaseModel]) -> list[str]:
     """
-    Analizza il modello Pydantic e restituisce i campi numerici che possono anche essere nulli.
+    Restituisce i campi numerici opzionali (Optional[int] o Optional[float]).
     """
-    regression_fields = get_regression_fields(model)
     result = []
-    for field in regression_fields:
-        field_type = model.model_fields[field].annotation
-        origin = get_origin(field_type) or field_type
+
+    for name, field in model.model_fields.items():
+        annotation = field.annotation
+        origin = get_origin(annotation)
+
+        # Caso Optional[...] → Union[T, NoneType]
         if origin is Union:
-            args = get_args(field_type)
-            if type(None) in args:
-                result.append(field)
+            args = get_args(annotation)
+
+            # Controlla se uno degli argomenti è numerico
+            has_numeric = any(a in (int, float) for a in args)
+            has_none = type(None) in args
+
+            if has_numeric and has_none:
+                result.append(name)
+
     return result
+
+def is_multilabel_model(cls: type[BaseModel]) -> bool:
+    if not issubclass(cls, BaseModel):
+        return False
+    for f in cls.model_fields.values():
+        if not (isinstance(f.annotation, type) and issubclass(f.annotation, Enum)):
+            return False
+        if f.annotation.__name__ != "Flag":
+            return False
+    return True
 
 def get_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
-    """
-    Analizza il modello Pydantic e restituisce i campi per i quali è possibile selezionare più di una classe.
-    """
-    result = []
+    fields = []
     for name, field in model.model_fields.items():
-        field_type = field.annotation
-        origin = get_origin(field_type) or field_type
-        if origin is list or field_is_flag_model(name, model):
-            result.append(name)            
-    return result
+        annotation = field.annotation
+        if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+            if is_multilabel_model(annotation):
+                fields.append(name)
+    return fields
 
 def get_binary_classification_fields(model: type[BaseModel]) -> list[str]:
-    """
-    Restituisce i campi di classificazione binaria (due classi),
-    includendo anche i sotto-campi dei FlagModel.
-    """
-    regression_fields = get_regression_fields(model)
-    multiple_choice_fields = get_multiple_choice_fields(model)
-    num_classes = get_number_of_classes(model)
-
-    binary_fields = []
-
+    fields = []
     for name, field in model.model_fields.items():
-        field_type = unwrap_type(field.annotation)
-
-        # Escludi regressione
-        if name in regression_fields:
-            continue
-
-        # Escludi multilabel (liste)
-        if name in multiple_choice_fields and not is_flag_model(field_type):
-            continue
-
-        # Caso 1: campo normale → binario se num_classes == 2
-        if num_classes.get(name, 0) == 2 and not is_flag_model(field_type):
-            binary_fields.append(name)
-            continue
-
-        # Caso 2: FlagModel → includi i sotto-campi
-        if is_flag_model(field_type):
-            sub_hints = field_type.__annotations__
-            for sub_name in sub_hints.keys():
-                full_name = f"{name}_{sub_name}"
-                # Ogni flag ha sempre 2 classi
-                binary_fields.append(full_name)
-
-    return binary_fields
+        annotation = field.annotation
+        if isinstance(annotation, type) and issubclass(annotation, Enum):
+            if len(annotation.__members__) == 2:
+                fields.append(name)
+    return fields
 
 def get_classification_fields(model: type[BaseModel]) -> list[str]:
     """
-    Restituisce i campi di classificazione (non numerici, non multi-scelta,
-    non FlagModel, e con numero di classi > 2).
+    Restituisce i campi di classificazione multiclass (Enum con >= 3 valori).
+    Esclude automaticamente i campi binari.
     """
-    regression_fields = get_regression_fields(model)
-    multiple_choice_fields = get_multiple_choice_fields(model)
-    num_classes = get_number_of_classes(model)
-
-    classification_fields = []
-
+    fields = []
     for name, field in model.model_fields.items():
-        field_type = unwrap_type(field.annotation)
-        # Escludi regressione
-        if name in regression_fields:
-            continue
-        # Escludi multilabel (liste)
-        if name in multiple_choice_fields:
-            continue
-        # Escludi FlagModel
-        if is_flag_model(field_type):
-            continue
-        # Escludi binari (num_classes <= 2)
-        if num_classes.get(name, 0) <= 2:
-            continue
-        # Se arrivi qui → è classificazione multiclass
-        classification_fields.append(name)
+        annotation = field.annotation
 
-    return classification_fields
+        # Deve essere un Enum
+        if isinstance(annotation, type) and issubclass(annotation, Enum):
+            # Escludi i binari (Enum con 2 membri)
+            if len(annotation.__members__) >= 3:
+                fields.append(name)
+
+    return fields
 
 def get_field_values(model: type[BaseModel]) -> dict[str, list[str]]:
-    field_values = {}
-    hints = model.__annotations__
+    """Restituisce un dizionario: campo -> lista di valori possibili (solo stringhe)."""
+    result = {}
 
-    for field_name, field_type in hints.items():
-        optional = is_optional_type(field_type)
-        base_type = unwrap_type(field_type)
+    for name, field in model.model_fields.items():
+        ann = field.annotation
 
-        # --- Caso 1: Enum ---
-        if isinstance(base_type, type) and issubclass(base_type, Enum):
-            values = [e.value for e in base_type]
-            if optional:
-                values.append(NAN_VALUE)
-            field_values[field_name] = values
+        # Caso 1: Enum (multiclass o binario)
+        if isinstance(ann, type) and issubclass(ann, Enum):
+            result[name] = [m.value for m in ann.__members__.values()]
             continue
 
-        # --- Caso 2: bool ---
-        if base_type is bool:
-            values = [False, True]
-            if optional:
-                values.append(NAN_VALUE)
-            field_values[field_name] = values
+        # Caso 2: multilabel → lista dei nomi dei flag
+        if isinstance(ann, type) and issubclass(ann, BaseModel):
+            if is_multilabel_model(ann):
+                result[name] = list(ann.model_fields.keys())
+                continue
+
+        # Caso 3: Optional numerico → lista vuota
+        origin = get_origin(ann)
+        if origin is Union:
+            args = get_args(ann)
+            if any(a in (int, float) for a in args):
+                result[name] = []
+                continue
+
+        # Caso 4: numerico non opzionale → lista vuota
+        if ann in (int, float):
+            result[name] = []
             continue
 
-        # --- Caso 3: FlagModel (BaseModel con campi Enum/Flag) ---
-        if isinstance(base_type, type) and issubclass(base_type, BaseModel):
-            # Controllo che sia davvero un FlagModel (tutti i campi Enum o Flag)
-            sub_hints = base_type.__annotations__
-            is_flag_model = all(
-                isinstance(unwrap_type(t), type) and issubclass(unwrap_type(t), Enum)
-                for t in sub_hints.values()
-            )
+        # Default
+        result[name] = []
 
-            if is_flag_model:
-                field_values[field_name] = list(base_type.model_fields.keys())
-                for sub_name, sub_type in sub_hints.items():
-                    sub_base = unwrap_type(sub_type)
-                    values = [e.value for e in sub_base]
-                    if optional:
-                        values.append(NAN_VALUE)
-                    field_values[f"{field_name}_{sub_name}"] = values
+    return result
 
-    return field_values
 
 def get_number_of_classes(model: type[BaseModel]) -> dict[str, int]:
     """
@@ -223,6 +166,8 @@ def create_label_to_id_map(model: type[BaseModel]) -> dict[str, dict[str, dict[s
 def labels_to_bits(labels: list[str], label_to_id_map: dict[str, int]) -> list[int]:
     result = [0] * len(label_to_id_map)
     for label in labels:
+        if label not in label_to_id_map:
+            raise KeyError(f"Label sconosciuta: {label}")
         result[label_to_id_map[label]] = 1
     return result
 
@@ -233,27 +178,14 @@ def bits_to_labels(bits: list[int], id_to_label_map: dict[int, str]) -> list[str
             result.append(id_to_label_map[i])
     return result
 
-def genera_schema_json_per_prompt(model: type[BaseModel]) -> dict:
-    """
-    Genera lo schema JSON per il prompt, basato sui campi del modello Pydantic.
-    """
-    field_values = get_field_values(model)
-    schema = {}
-    for field_name, values in field_values.items():
-        schema[field_name] = {
-            "type": "string" if len(values) <= 10 else "array",
-            "enum": values
-        }
-    return schema
 
-def field_is_flag_model(field: str, model: type[BaseModel]) -> bool:
-    field_type = unwrap_type(model.model_fields[field].annotation)
-    return is_flag_model(field_type)
-
-def from_list_to_flags(possible_values: list[str], values: list[str]) -> dict:
+def from_list_to_flags(possible_values: list[str], values: list[str]) -> dict[str, str]:
     """
     Converte una lista di valori in un dizionario di flag per un FlagModel.
     """
+    for v in values:
+        if v not in possible_values:
+            raise ValueError(f"Valore non valido per multilabel: {v}")
     result = dict()
     for p in possible_values:
         if p in values:
@@ -263,55 +195,124 @@ def from_list_to_flags(possible_values: list[str], values: list[str]) -> dict:
     return result
 
 def from_series_to_basemodel(series: pd.Series, ann_model: type[BaseModel]) -> BaseModel:
-    data_dict = dict()
-    reg_fields = get_regression_fields(ann_model)
-    mc_fields = get_multiple_choice_fields(ann_model)
-    for field in ann_model.model_fields.keys():
-        v = series[field]
-        if field in reg_fields:
-            if pd.isna(v):
-                data_dict[field] = None
-            else:
-                data_dict[field] = v
-        elif field_is_flag_model(field, ann_model):
-            v = literal_eval(v)
-            possible_values = list(ann_model.model_fields[field].annotation.model_fields.keys())
-            data_dict[field] = from_list_to_flags(possible_values, v)
-        elif field in mc_fields:
-            data_dict[field] = literal_eval(v)
-        else:
-            data_dict[field] = v
-    return ann_model(**data_dict)
+    """
+    Converte una pd.Series in un'istanza del modello Pydantic ann_model.
+    Gestisce automaticamente:
+    - campi numerici
+    - campi multiclass (Enum)
+    - campi binari
+    - campi multilabel (FlagModel)
+    """
+    data = {}
+    field_values = get_field_values(ann_model)
 
-def annotated_report_to_mistral_dict(annotated_report: type[BaseModel]) -> dict:
-    assert isinstance(annotated_report, AnnotatedReportReduced)
-    result = {
-        'text': annotated_report.report_text,
-        'labels': dict()
-    }
-    for k, v in annotated_report.report_data.model_dump().items():
-            result['labels'][k] = v
-    return result
-  
-def flags_to_bits(flags: dict[str, str]) -> list[int]:
-    result = []
-    for k, v in flags.items():
-        if v == Flag.SI.value:
-            result.append(1)
+    for field_name, field_info in ann_model.model_fields.items():
+        ann = field_info.annotation
+        raw_value = series.get(field_name)
+
+        # Caso 1: multilabel → lista di flag attivi
+        if isinstance(ann, type) and issubclass(ann, BaseModel) and is_multilabel_model(ann):
+            possible_flags = field_values[field_name]  # es. ["basso", "medio", ...]
+            
+            # raw_value può essere:
+            # - una lista
+            # - una stringa tipo "['basso','alto']"
+            # - NaN → nessun flag attivo
+            if pd.isna(raw_value):
+                active_flags = []
+            elif isinstance(raw_value, list):
+                active_flags = raw_value
+            else:
+                active_flags = literal_eval(raw_value)
+
+            data[field_name] = from_list_to_flags(possible_flags, active_flags)
+            continue
+
+        # Caso 2: Enum (multiclass o binario)
+        if isinstance(ann, type) and issubclass(ann, Enum):
+            # raw_value deve essere una stringa valida
+            data[field_name] = None if pd.isna(raw_value) else raw_value
+            continue
+
+        # Caso 3: numerico (int/float o Optional)
+        if pd.isna(raw_value):
+            data[field_name] = None
         else:
+            data[field_name] = raw_value
+
+    return ann_model(**data)
+
+
+def from_basemodel_to_series(model_instance: BaseModel) -> pd.Series:
+    """
+    Converte un'istanza Pydantic in una pd.Series.
+    Gestisce automaticamente:
+    - campi numerici
+    - campi multiclass (Enum)
+    - campi binari
+    - campi multilabel (FlagModel)
+    """
+    data = {}
+    model_cls = type(model_instance)
+
+    for field_name, field_info in model_cls.model_fields.items():
+        ann = field_info.annotation
+        value = getattr(model_instance, field_name)
+
+        # Caso 1: multilabel → lista di flag attivi
+        if isinstance(ann, type) and issubclass(ann, BaseModel) and is_multilabel_model(ann):
+            active_flags = []
+            for flag_name, flag_value in value.items():
+                if flag_value == Flag.SI.value:
+                    active_flags.append(flag_name)
+            data[field_name] = active_flags
+            continue
+
+        # Caso 2: Enum (multiclass o binario)
+        if isinstance(ann, type) and issubclass(ann, Enum):
+            data[field_name] = value
+            continue
+
+        # Caso 3: numerico o Optional
+        data[field_name] = value
+
+    return pd.Series(data)
+
+                
+def flags_to_bits(flags: dict[str, str]) -> list[int]:
+    """
+    Converte un dizionario di flag ("si"/"no") in una lista di bit (1/0).
+    L'ordine dei bit segue l'ordine delle chiavi nel dizionario.
+    """
+    result = []
+    for key, value in flags.items():
+        if value == Flag.SI.value:
+            result.append(1)
+        elif value == Flag.NO.value:
             result.append(0)
+        else:
+            raise ValueError(f"Valore non valido per flag '{key}': {value}")
     return result
+                
                 
 if __name__ == "__main__":
     import constants
-    model_type = constants.Annotations
+    from pprint import pprint
+    model_type = constants.RectalCancerStagingData
     reg_fields = get_regression_fields(model_type)
+    opt_reg_fields = get_optional_regression_fields(model_type)
     cl_fields = get_classification_fields(model_type)
     mc_fields = get_multiple_choice_fields(model_type)
     bc_fields = get_binary_classification_fields(model_type)
     label_to_id_map = create_label_to_id_map(model_type)
-    mc_fields_estesi = []
-    for field in get_binary_classification_fields(constants.AnnotationsExtended):
-        if field not in bc_fields:
-            mc_fields_estesi.append(field)
-    print(mc_fields_estesi)
+    print(f'regression:\n{reg_fields}')
+    print(f'opt regression:\n{opt_reg_fields}')
+    print(f'classification:\n{cl_fields}')
+    print(f'binary:\n{bc_fields}')
+    print(f'multilabel:\n{mc_fields}')
+    field_values = get_field_values(model_type)
+    pprint(field_values)
+    n_classes = get_number_of_classes(model_type)
+    pprint(n_classes)
+    label_to_id_map = create_label_to_id_map(model_type)
+    pprint(label_to_id_map)
