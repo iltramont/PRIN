@@ -13,6 +13,7 @@ import constants
 from sklearn.dummy import DummyClassifier, DummyRegressor
 import numpy as np
 
+from MAIN.model_utils import from_series_to_basemodel
 from model_utils import (
     get_binary_classification_fields,
     get_classification_fields,
@@ -22,7 +23,10 @@ from model_utils import (
     labels_to_bits,
     get_field_values,
     get_number_of_classes,
-    get_optional_regression_fields
+    get_optional_regression_fields,
+    from_series_to_basemodel,
+    bits_to_labels,
+    from_list_to_flags
 )
 
 
@@ -35,7 +39,7 @@ random.seed(constants.SEED)
 ############
 # Parameters
 ############
-ann_model = constants.Annotations
+ann_model = constants.RectalCancerStagingData
 base_dir = Path(__file__).parent.parent
 DUMMY_REG_STRATEGY = 'mean'  # Options: 'mean', 'median', 'quantile', 'constant'
 
@@ -109,31 +113,37 @@ def save_actual_row(res_dict: dict, split: str, actual_row: pd.Series, label_to_
         
 def dummy_classification(y_train: np.ndarray | list,
                          strategy: str,
+                         len_train: int,
                          len_validation: int,
                          len_test: int,
                          random_state=constants.SEED) -> tuple[list[int]]:
     x_train = np.zeros(len(y_train))
     classifier = DummyClassifier(strategy=strategy, random_state=random_state)
     classifier.fit(x_train, y_train)
+    x_train_ = np.zeros(len_train)
+    y_train_ = classifier.predict(x_train_)
     x_validation = np.zeros(len_validation)
     y_validation = classifier.predict(x_validation)
     x_test = np.zeros(len_test)
     y_test = classifier.predict(x_test)
-    return y_validation.tolist(), y_test.tolist()
+    return y_train_.tolist(), y_validation.tolist(), y_test.tolist()
 
 
 def dummy_regression(y_train: np.ndarray | list,
                      strategy: str,
+                     len_train: int,
                      len_validation: int,
                      len_test: int) -> tuple[list[int]]:
     x_train = np.zeros(len(y_train))
     regressor = DummyRegressor(strategy=strategy)
     regressor.fit(x_train, y_train)
+    x_train_ = np.zeros(len_train)
+    y_train_ = regressor.predict(x_train_)
     x_validation = np.zeros(len_validation)
     y_validation = regressor.predict(x_validation)
     x_test = np.zeros(len_test)
     y_test = regressor.predict(x_test)
-    return y_validation.round().astype(int).tolist(), y_test.round().astype(int).tolist()
+    return y_train_.round().astype(int).tolist(), y_validation.round().astype(int).tolist(), y_test.round().astype(int).tolist()
 
 
 def create_res_dict():
@@ -165,7 +175,7 @@ results_most_frequent = create_res_dict()
 results_uniform = create_res_dict()
 results_stratified = create_res_dict()
 
-
+len_train = len(train_data)
 len_validation = len(validation_data)
 len_test = len(test_data)
 
@@ -183,58 +193,109 @@ for strategy, res_dict in zip(strategies, res_dicts):
         # Save dummy predictions
         for field in bc_fields + cl_fields:
             y_train = res_dict['train']['actual'][field]
-            pred_validation, pred_test = dummy_classification(
+            pred_train, pred_validation, pred_test = dummy_classification(
                 y_train,
                 strategy,
+                len_train,
                 len_validation,
                 len_test
             )
+            res_dict['train']['predicted'][field] = pred_train
             res_dict['validation']['predicted'][field] = pred_validation
             res_dict['test']['predicted'][field] = pred_test
         for field in mc_fields:
             matrix_train = np.array(res_dict['train']['actual'][field])
+            matrix_train_  = []
             matrix_validation = []
             matrix_test = []
             for i in range(matrix_train.shape[1]):
-                y_validation, y_test = dummy_classification(
+                y_train_, y_validation, y_test = dummy_classification(
                     y_train=matrix_train[:, i],
                     strategy=strategy,
+                    len_train=len_train,
                     len_validation=len_validation,
                     len_test=len_test
                 )
+                matrix_train_.append(y_train_)
                 matrix_validation.append(y_validation)
                 matrix_test.append(y_test)
+            res_dict['train']['predicted'][field] = np.array(matrix_train_).T.tolist()
             res_dict['validation']['predicted'][field] = np.array(matrix_validation).T.tolist()
             res_dict['test']['predicted'][field] = np.array(matrix_test).T.tolist()
         for field in reg_fields:
             y_train = res_dict['train']['actual'][field]
-            pred_validation, pred_test = dummy_regression(
+            pred_train, pred_validation, pred_test = dummy_regression(
                 pd.Series(np.array(y_train)).dropna().tolist(),
                 DUMMY_REG_STRATEGY,
+                len_train,
                 len_validation,
                 len_test
             )
+            res_dict['train']['predicted'][field] = pred_train
             res_dict['validation']['predicted'][field] = pred_validation
             res_dict['test']['predicted'][field] = pred_test
-                  
+
+"""
+{
+    'model': MODEL,
+    'split': split,
+    'id': int(id),
+    'actual': act,
+    'prediction': pred
+}
+"""
+
+
+fields_values = get_field_values(ann_model)
+most_frequent_list = []
+uniform_list = []
+stratified_list = []
+
+for res_dict, m_name, m_list in zip(res_dicts, ['most_frequent', 'uniform', 'stratified'], [most_frequent_list, uniform_list, stratified_list]):
+    for df in (train_data, validation_data, test_data):
+        for i, row in df.iterrows():
+            id = row.get('id')
+            split = row.get('split')
+            actual = from_series_to_basemodel(row, ann_model).model_dump(mode='json')
+            predicted = dict()
+            for f in actual.keys():
+                v = res_dict[split]['predicted'][f][i]
+                if f in reg_fields:
+                    predicted[f] = v
+                elif f in cl_fields or f in bc_fields:
+                    label = label_to_id_map[f]['id_to_label'][v]
+                    predicted[f] = label
+                elif f in mc_fields:
+                    labels_list = bits_to_labels(v, label_to_id_map[f]['id_to_label'])
+                    flags = from_list_to_flags(fields_values[f], labels_list)
+                    predicted[f] = flags
+            row_dict = {
+                'model': f'{m_name}_and_mean',
+                'split': split,
+                'id': id,
+                'actual': actual,
+                'prediction': predicted
+            }
+            m_list.append(row_dict)
+
 
 ##############
 # Save results
-##############      
-results_most_frequent.pop('train')
-results_uniform.pop('train')
-results_stratified.pop('train')
+##############
 
 output_path = base_dir / "data" / "inference"
 output_path.mkdir(parents=True, exist_ok=True)
 
-with open(output_path / 'results_baseline_most_frequent.json', "w") as f:
-    json.dump(results_most_frequent, f, indent=4)
+with open(output_path / 'results_baseline_most_frequent.jsonl', "w") as f:
+    for r in most_frequent_list:
+        f.write(json.dumps(r) + '\n')
+
+with open(output_path / 'results_baseline_uniform.jsonl', "w") as f:
+    for r in uniform_list:
+        f.write(json.dumps(r) + '\n')
     
-with open(output_path / 'results_baseline_uniform.json', "w") as f:
-    json.dump(results_uniform, f, indent=4)
-    
-with open(output_path / 'results_baseline_stratified.json', "w") as f:
-    json.dump(results_stratified, f, indent=4)
+with open(output_path / 'results_baseline_stratified.jsonl', "w") as f:
+    for r in stratified_list:
+        f.write(json.dumps(r) + '\n')
 
 print(f"Results saved")

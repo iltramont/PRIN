@@ -71,6 +71,16 @@ def get_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
                 fields.append(name)
     return fields
 
+def get_extended_multiple_choice_fields(model: type[BaseModel]) -> list[str]:
+    fields = []
+    for name, field in model.model_fields.items():
+        annotation = field.annotation
+        if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+            if is_multilabel_model(annotation):
+                for f in annotation.model_fields.keys():
+                    fields.append(f'{name}_{f}')
+    return fields
+
 def get_binary_classification_fields(model: type[BaseModel]) -> list[str]:
     fields = []
     for name, field in model.model_fields.items():
@@ -262,7 +272,7 @@ def from_basemodel_to_series(model_instance: BaseModel) -> pd.Series:
         # Caso 1: multilabel → lista di flag attivi
         if isinstance(ann, type) and issubclass(ann, BaseModel) and is_multilabel_model(ann):
             active_flags = []
-            for flag_name, flag_value in value.items():
+            for flag_name, flag_value in value.model_dump().items():
                 if flag_value == Flag.SI.value:
                     active_flags.append(flag_name)
             data[field_name] = active_flags

@@ -197,8 +197,8 @@ class CoinvolgimentoRiflessionePeritoneale(str, Enum):
     
 class StadioN(str, Enum):
     N0 = "N0"
-    #N1 = "N1"
-    #N2 = "N2"
+    N1 = "N1"
+    N2 = "N2"
     N_PLUS = "N+"
     
 class StadioN1c(str, Enum):

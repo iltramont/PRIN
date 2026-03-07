@@ -25,10 +25,9 @@ import model_utils
 base_dir = Path(__file__).parent.parent
 # Parameters
 SAVE_RESULTS = True
-RESULTS_FILE = "results_gpt-4.1-tuned-similar_examples.jsonl"
-SAVING_FILE = "metrics_gpt-4.1-tuned-similar_examples.csv"
+RESULTS_FILE = "results_baseline_stratified.jsonl"
+SAVING_FILE = "metrics_baseline_stratified.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
-USE_JSONL = True
 ANN_MODEL = constants.RectalCancerStagingData
 
 # Set plot style
@@ -43,22 +42,12 @@ finomnia_palette = sns.color_palette(('#db038a',   # Pink
 sns.set_palette(finomnia_palette)
 
 with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
-    if USE_JSONL:
         results = [json.loads(line) for line in f]
         reg_fields = model_utils.get_regression_fields(ANN_MODEL)
         clas_fields = model_utils.get_classification_fields(ANN_MODEL)
         multi_fields = model_utils.get_multiple_choice_fields(ANN_MODEL)
         bin_fields = model_utils.get_binary_classification_fields(ANN_MODEL)
         label_to_id_map = model_utils.create_label_to_id_map(ANN_MODEL)
-    else:
-        results = json.load(f)
-        for field, d in results['info']['label_to_id_map'].items():
-            d['id_to_label'] = {int(k): v for k, v in d['id_to_label'].items()}
-            reg_fields = results['info']['regression_fields']
-            clas_fields = results['info']['classification_fields']
-            multi_fields = results['info']['multiple_choice_fields']
-            bin_fields = results['info']['binary_classification_fields']
-            label_to_id_map = results['info']['label_to_id_map']
 
 
 ############
@@ -67,15 +56,11 @@ with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
 rows = []
 for field in reg_fields:
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(row['actual'][field])
-                    predicted.append(row['prediction'][field])
-        else:
-            predicted = np.array(results[split]['predicted'][field], dtype=object)
-            actual = np.array(results[split]['actual'][field], dtype=object)
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(row['actual'][field])
+                predicted.append(row['prediction'][field])
         if len(predicted) == 0:
             continue
         # Liste pulite
@@ -138,17 +123,13 @@ for i, field in enumerate(bin_fields):
         # Trova soglia ottimale
         best_threshold = get_best_threshold_binary(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            if field not in ANN_MODEL.model_fields.keys():
-                continue
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
-                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
-        else:
-            predicted = np.array(results[split]['predicted'][field])
-            actual = np.array(results[split]['actual'][field])
+        if field not in ANN_MODEL.model_fields.keys():
+            continue
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
         if len(predicted) == 0:
             continue
         if best_threshold is not None:
@@ -172,17 +153,13 @@ df_binary = pd.DataFrame(df)
 df = []
 for i, field in enumerate(clas_fields):
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            if field not in ANN_MODEL.model_fields.keys():
-                continue
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
-                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
-        else:
-            predicted = np.array(results[split]['predicted'][field])
-            actual = np.array(results[split]['actual'][field])
+        if field not in ANN_MODEL.model_fields.keys():
+            continue
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
         if len(predicted) == 0:
             continue
         if USE_SCORES:
@@ -232,19 +209,15 @@ for field in multi_fields:
         thresholds = get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]),
                                                     np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            if field not in ANN_MODEL.model_fields.keys():
-                continue
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(model_utils.flags_to_bits(row['actual'][field]))
-                    predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
-            actual = np.array(actual)
-            predicted = np.array(predicted)
-        else:
-            predicted = np.array(results[split]['predicted'][field])
-            actual = np.array(results[split]['actual'][field])
+        if field not in ANN_MODEL.model_fields.keys():
+            continue
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(model_utils.flags_to_bits(row['actual'][field]))
+                predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
+        actual = np.array(actual)
+        predicted = np.array(predicted)
         if len(predicted) == 0:
             continue
         if thresholds is not None:

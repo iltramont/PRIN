@@ -12,6 +12,9 @@ base_dir = Path(__file__).parent.parent
 ANN_MODEL = constants.RectalCancerStagingData
 
 RESULT_FILES = (
+    'results_baseline_most_frequent.jsonl',
+    'results_baseline_uniform.jsonl',
+    'results_baseline_stratified.jsonl',
     'results_gpt-4.1-nano.jsonl',
     'results_gpt-4.1-nano-tuned.jsonl',
     'results_gpt-4.1-nano-tuned-oversampling.jsonl',

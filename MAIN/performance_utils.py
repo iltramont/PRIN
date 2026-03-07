@@ -35,17 +35,21 @@ def reg_score(actual, prediction) -> float:
             if actual == 0:
                 return 0.0
             else:
+                # The score is 1 - MAPE, with a minimum of zero
                 return max(0.0, 1.0 - (np.abs((prediction - actual) / actual)))
     else:
         return 0.0
 
 def stadio_n_score(actual, prediction) -> float:
+    positive_states = [constants.StadioN.N1.value, constants.StadioN.N2.value, constants.StadioN.N_PLUS.value]
     if actual == prediction:
+        # Copre anche il caso N0, N0
         return 1.0
-    if actual == constants.StadioN.N0.value or actual == constants.StadioN.N0.value:
-        return 0.0
+    if (actual in positive_states) and (prediction in positive_states):
+        # Copre i casi (N1, N2), (N1, N+), (N2, N+)
+        return 1.0
     else:
-        return 0.5
+        return 0.0
 
 def stadio_t_score(actual, prediction) -> float:
     t3 = [constants.StadioT.T3AB.value, constants.StadioT.T3CD.value]
@@ -63,6 +67,7 @@ def infiltrazione_tessuto_adiposo_score(actual, prediction) -> float:
     if actual == prediction:
         return 1.0
     elif actual != constants.InfiltrazioneTessutoAdiposo.NO and prediction != constants.InfiltrazioneTessutoAdiposo.NO:
+        # Caso si_5mm, si_5mm_plus
         return 0.5
     else:
         return 0.0
