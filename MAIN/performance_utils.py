@@ -25,6 +25,48 @@ def load_results_data(file_name: str,
             })
         return results
 
+
+def converti_ore_in_archi(ore_inizio: int, ore_fine: int) -> list[tuple[int]]:
+    if ore_inizio == ore_fine:
+        # Arco completo
+        return [(0, 12)]
+    elif ore_inizio < ore_fine:
+        return [(ore_inizio, ore_fine)]
+    else:
+        return [(ore_inizio, 12), (0, ore_fine)]
+
+def converti_archi_in_lunghezza(archi: list[tuple[int]]) -> float:
+    result = 0.0
+    for arco in archi:
+        result = result + arco[1] - arco[0]
+    return result
+
+def sovrapposizione_tra_2_archi(arco1: tuple[int], arco2: tuple[int]) -> float:
+    return max(0.0, min(arco1[1], arco2[1]) - max(arco1[0], arco2[0]))
+
+def ore_score(actual_inizio: int, actual_fine: int, pred_inizio: int, pred_fine: int) -> float:
+    if actual_inizio is None and pred_inizio is None and actual_fine is None and pred_fine is None:
+        return 1.0
+    if actual_inizio is not None and pred_inizio is not None and actual_fine is not None and pred_fine is not None:
+        if actual_inizio == pred_inizio and actual_fine == pred_fine:
+            return 1.0
+        else:
+            # lunghezza totale = lunghezza actual + lunghezza pred - overlap
+            archi_actual = converti_ore_in_archi(actual_inizio, actual_fine)
+            archi_pred = converti_ore_in_archi(pred_inizio, pred_fine)
+            lunghezza_actual = converti_archi_in_lunghezza(archi_actual)
+            lunghezza_pred = converti_archi_in_lunghezza(archi_pred)
+            overlap = 0.0
+            for x in archi_actual:
+                for y in archi_pred:
+                    overlap = overlap + sovrapposizione_tra_2_archi(x, y)
+            union = lunghezza_actual + lunghezza_pred - overlap
+            if union == 0:
+                return 0.0
+            return overlap / union
+    else:
+        return 0.0
+
 def reg_score(actual, prediction) -> float:
     if actual is None and prediction is None:
         return 1.0
@@ -79,8 +121,14 @@ def compare_prediction(actual: BaseModel, prediction: BaseModel) -> pd.DataFrame
     for f in type(actual).model_fields:
         a = getattr(actual, f)
         p = getattr(prediction, f)
-        if f in reg_fields:
+        if (f in reg_fields) and (f not in ['ore_fine', 'ore_inizio']):
             row = [f, a, p, reg_score(a, p)]
+        elif f == 'ore_inizio':
+            a_inizio = a
+            p_inizio = p
+            a_fine = getattr(actual, 'ore_fine')
+            p_fine = getattr(prediction, 'ore_fine')
+            row = [(f, 'ore_fine'), (a_inizio, a_fine), (p_inizio, p_fine), ore_score(a_inizio, a_fine, p_inizio, p_fine)]
         elif f == "stadio_N":
             row = [f, a, p, stadio_n_score(a, p)]
         elif f == "stadio_T":
