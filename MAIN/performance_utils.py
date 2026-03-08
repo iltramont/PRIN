@@ -67,6 +67,7 @@ def ore_score(actual_inizio: int, actual_fine: int, pred_inizio: int, pred_fine:
     else:
         return 0.0
 
+
 def reg_score(actual, prediction) -> float:
     if actual is None and prediction is None:
         return 1.0
@@ -114,6 +115,11 @@ def infiltrazione_tessuto_adiposo_score(actual, prediction) -> float:
     else:
         return 0.0
 
+
+
+
+
+
 def compare_prediction(actual: BaseModel, prediction: BaseModel) -> pd.DataFrame:
     reg_fields = model_utils.get_regression_fields(type(actual))
     multilabel_fields = model_utils.get_multiple_choice_fields(type(actual))
@@ -158,6 +164,10 @@ def prediction_score(actual: BaseModel, prediction: BaseModel) -> float:
     return comp_df['score'].mean()
 
 
-
-
+if __name__ == '__main__':
+    from pprint import pprint
+    base_dir = Path(__file__).parent.parent
+    ANN_MODEL = constants.RectalCancerStagingData
+    data = load_results_data('results_opus-4.6.jsonl', base_dir/"data"/"inference", ANN_MODEL)
+    print(compare_prediction(data[0]['actual'], data[0]['prediction']))
 

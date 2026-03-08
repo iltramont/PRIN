@@ -284,6 +284,35 @@ class AnnotatedRectalCancerReport(BaseModel):
     )    
 
 
+# Feature weights (importance)
+FEATURE_WEIGHTS = {
+    "morfologia": 1,
+    "ore_inizio": 1,
+    "ore_fine": 1,
+    "spessore_parietale": 1,
+    "estensione_cranio_caudale": 1, 
+    "distanza_oai": 1,
+    "posizione": 1, 
+    "riflessione_peritoneale_anteriore": 1, 
+    "infiltrazione_tessuto_adiposo": 1,
+    "infiltrazione_sfinteri": 1,
+    "infiltrazione_organi_extra": 1, 
+    "infiltrazione_organi_dettagli": 1, 
+    "coinvolgimento_riflessione_peritoneale": 1, 
+    "coinvolgimento_fascia_mesorettale": 1, 
+    "numero_linfonodi_non_conosciuto": 1,
+    "linfonodi_sospetti": 1,
+    "sedi_linfonodi": 1, 
+    "depositi_tumorali": 1,
+    "emvi": 1, 
+    "stadio_T": 1,
+    "stadio_N": 1,
+    "stadio_N1c": 1, 
+    "mrf": 1,
+    "metastasi": 1, 
+}
+
+
 
 if __name__ == '__main__':
     from openai.lib._pydantic import to_strict_json_schema
