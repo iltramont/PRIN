@@ -69,6 +69,7 @@ SYSTEM_PROMPT = "system_prompt.txt"
 SYSTEM_PROMPT_2 = "system_prompt_2.txt"
 SYSTEM_PROMPT_3 = "system_prompt_3.txt"
 SYSTEM_PROMPT_4 = "system_prompt_4.txt"
+SYSTEM_PROMPT_5 = "system_prompt_5.txt"
 
 #################
 # Raw data fields
@@ -174,7 +175,8 @@ class InfiltrazioneTessutoAdiposo(str, Enum):
 class RiflessionePeritonealeAnteriore(str, Enum):
     SOTTO = "sotto"
     CAVALLO = "cavallo"
-    NON_VALUTABILE = "non_valutabile"
+    #NON_VALUTABILE = "non_valutabile"
+    NON_DESCRITTO = "non_descritto"
 
 class StadioT(str, Enum):
     T1_2 = "T1-2"
@@ -197,13 +199,13 @@ class CoinvolgimentoRiflessionePeritoneale(str, Enum):
     
 class StadioN(str, Enum):
     N0 = "N0"
-    N1 = "N1"
-    N2 = "N2"
+    #N1 = "N1"
+    #N2 = "N2"
     N_PLUS = "N+"
     
-class StadioN1c(str, Enum):
-    NO = "no"
-    SI = "si"
+#class StadioN1c(str, Enum):
+#    NO = "no"
+#    SI = "si"
     
 class MRF(str, Enum):
     MINUS = "-"
@@ -263,7 +265,6 @@ class RectalCancerStagingData(BaseModel):
     emvi: EMVI = Field(description="Extra Mural Vascular Invasion, infiltrazione diretta dei vasi mesorettali")
     stadio_T: StadioT = Field(description="Stadiazione T secondo TNM (invasione locale del tumore)")
     stadio_N: StadioN = Field(description="Stadiazione linfonodale secondo TNM")
-    stadio_N1c: StadioN1c = Field(description="Presenza di depositi tumorali")
     mrf: MRF = Field(description="Infiltrazione della fascia mesorettale")
     metastasi: Metastasi = Field(description="Stadiazione M secondo TNM (metastasi a distanza)")
 
@@ -287,9 +288,10 @@ class AnnotatedRectalCancerReport(BaseModel):
 # Feature weights (importance)
 FEATURE_WEIGHTS = {
     "morfologia": 1,
-    "ore_inizio": 1,
-    "ore_fine": 1,
-    "spessore_parietale": 1,
+    #"ore_inizio": 1,
+    #"ore_fine": 1,
+    'ore': 1,  # meno importante
+    "spessore_parietale": 1, # Meno importante
     "estensione_cranio_caudale": 1, 
     "distanza_oai": 1,
     "posizione": 1, 
@@ -300,7 +302,7 @@ FEATURE_WEIGHTS = {
     "infiltrazione_organi_dettagli": 1, 
     "coinvolgimento_riflessione_peritoneale": 1, 
     "coinvolgimento_fascia_mesorettale": 1, 
-    "numero_linfonodi_non_conosciuto": 1,
+    "numero_linfonodi_non_conosciuto": 1, # meno importante
     "linfonodi_sospetti": 1,
     "sedi_linfonodi": 1, 
     "depositi_tumorali": 1,

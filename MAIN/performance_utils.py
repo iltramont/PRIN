@@ -116,32 +116,37 @@ def infiltrazione_tessuto_adiposo_score(actual, prediction) -> float:
         return 0.0
 
 
-
-
-
-
-def compare_prediction(actual: BaseModel, prediction: BaseModel) -> pd.DataFrame:
+def compare_prediction(actual: BaseModel, prediction: BaseModel, weights=constants.FEATURE_WEIGHTS) -> pd.DataFrame:
     reg_fields = model_utils.get_regression_fields(type(actual))
     multilabel_fields = model_utils.get_multiple_choice_fields(type(actual))
     rows = []
     for f in type(actual).model_fields:
+        if f == 'ore_fine':
+            continue
+        w = 999
         a = getattr(actual, f)
         p = getattr(prediction, f)
         if (f in reg_fields) and (f not in ['ore_fine', 'ore_inizio']):
-            row = [f, a, p, reg_score(a, p)]
+            w = weights[f]
+            row = [f, a, p, reg_score(a, p), w]
         elif f == 'ore_inizio':
+            w = weights['ore']
             a_inizio = a
             p_inizio = p
             a_fine = getattr(actual, 'ore_fine')
             p_fine = getattr(prediction, 'ore_fine')
-            row = [(f, 'ore_fine'), (a_inizio, a_fine), (p_inizio, p_fine), ore_score(a_inizio, a_fine, p_inizio, p_fine)]
+            row = [(f, 'ore_fine'), (a_inizio, a_fine), (p_inizio, p_fine), ore_score(a_inizio, a_fine, p_inizio, p_fine), w]
         elif f == "stadio_N":
-            row = [f, a, p, stadio_n_score(a, p)]
+            w = weights[f]
+            row = [f, a, p, stadio_n_score(a, p), w]
         elif f == "stadio_T":
-            row = [f, a, p, stadio_t_score(a, p)]
+            w = weights[f]
+            row = [f, a, p, stadio_t_score(a, p), w]
         elif f == "infiltrazione_tessuto_adiposo":
-            row = [f, a, p, infiltrazione_tessuto_adiposo_score(a, p)]
+            w = weights[f]
+            row = [f, a, p, infiltrazione_tessuto_adiposo_score(a, p), w]
         elif f in multilabel_fields:
+            w = weights[f]
             row = [
                 f,
                 [x[0] for x in a if x[1] == constants.Flag.SI.value],
@@ -153,15 +158,17 @@ def compare_prediction(actual: BaseModel, prediction: BaseModel) -> pd.DataFrame
                 row.append(1.0)
             else:
                 row.append(jaccard_score(abits, pbits))
+            row.append(w)
         else:
-            row = [f, a, p, float(int(a == p))]
+            w = weights[f]
+            row = [f, a, p, float(int(a == p)), w]
         rows.append(row)
-    return pd.DataFrame.from_records(rows, columns=['field', 'actual', 'perdicted', 'score'])
+    return pd.DataFrame.from_records(rows, columns=['field', 'actual', 'perdicted', 'score', 'weight'])
 
 
-def prediction_score(actual: BaseModel, prediction: BaseModel) -> float:
-    comp_df = compare_prediction(actual, prediction)
-    return comp_df['score'].mean()
+def prediction_score(actual: BaseModel, prediction: BaseModel, weights=constants.FEATURE_WEIGHTS) -> float:
+    comp_df = compare_prediction(actual, prediction, weights=weights)
+    return (comp_df['score'] * comp_df['weight']).sum() / comp_df['weight'].sum() 
 
 
 if __name__ == '__main__':
@@ -170,4 +177,5 @@ if __name__ == '__main__':
     ANN_MODEL = constants.RectalCancerStagingData
     data = load_results_data('results_opus-4.6.jsonl', base_dir/"data"/"inference", ANN_MODEL)
     print(compare_prediction(data[0]['actual'], data[0]['prediction']))
+    print(prediction_score(data[0]['actual'], data[0]['prediction']))
 

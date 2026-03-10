@@ -1,35 +1,55 @@
 from pydantic import BaseModel
-from model_utils import get_regression_fields, get_optional_regression_fields, unwrap_type, field_is_flag_model
+from model_utils import get_regression_fields, get_optional_regression_fields, get_multiple_choice_fields
 import json
 from constants import AnnotatedRectalCancerReport
+from typing import get_origin, get_args, Union
+from enum import Enum
 
 
+
+
+
+def unwrap_optional(t):
+    """Ritorna (tipo_base, is_optional)."""
+    origin = get_origin(t)
+    if origin is Union:
+        args = get_args(t)
+        if type(None) in args:
+            non_none = [a for a in args if a is not type(None)][0]
+            return non_none, True
+    return t, False
 
 
 def generate_prompt_schema(model: type[BaseModel]) -> dict:
-    """
-    Genera lo schema JSON per il prompt, basato sui campi del modello Pydantic.
-    """
     reg_fields = get_regression_fields(model)
     optional_reg_fields = get_optional_regression_fields(model)
-    result = dict()
-    for f in model.model_fields:
-        if f in reg_fields:
-            field_type_str = "int"
-            field_type = unwrap_type(model.model_fields[f].annotation)
-            if field_type is float:
-                field_type_str = "float"
-                
-            if f in optional_reg_fields:
-                field_type_str = f'{field_type_str} | null'
-            result[f] = field_type_str
-        elif field_is_flag_model(f, model):
-            field_type = unwrap_type(model.model_fields[f].annotation)
-            result[f] = generate_prompt_schema(field_type)
-        else:
-            field_type = unwrap_type(model.model_fields[f].annotation)
+
+    result = {}
+
+    for name, field_info in model.model_fields.items():
+        field_type, is_optional = unwrap_optional(field_info.annotation)
+        # Caso regressione
+        if name in reg_fields:
+            t = "int"
+            if name in optional_reg_fields or is_optional:
+                t = f"{t} | null"
+            result[name] = t
+            continue
+        # Caso modello annidato
+        if isinstance(field_type, type) and issubclass(field_type, BaseModel):
+            result[name] = generate_prompt_schema(field_type)
+            continue
+        # Caso Enum
+        if isinstance(field_type, type) and issubclass(field_type, Enum):
             values = [e.value for e in field_type]
-            result[f] = " | ".join(values)
+            result[name] = " | ".join(values)
+            continue
+        # Caso generico (stringhe, int, ecc.)
+        base = field_type.__name__
+        if is_optional:
+            base = f"{base} | null"
+        result[name] = base
+
     return result
 
 
@@ -37,7 +57,7 @@ def create_system_prompt(prompt_path: str, annotation_model: type[BaseModel]) ->
     with open(prompt_path, 'r', encoding='utf-8') as f:
         system_prompt = f.read()
         
-    schema = json.dumps(generate_prompt_schema(annotation_model), indent=None)
+    schema = json.dumps(generate_prompt_schema(annotation_model), indent=2)
     system_prompt = system_prompt.replace("{schema_json}", schema)
     return system_prompt
 
