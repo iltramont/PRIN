@@ -4,46 +4,7 @@ Il tuo compito è estrarre informazioni strutturate dal referto RM fornito e res
 </ruolo>
 
 <schema>
-{
-  "morfologia": "solido_polipoide | solido_anulare | mucinoso",
-  "ore_inizio": "int | null",
-  "ore_fine": "int | null",
-  "spessore_parietale": "int | null",
-  "estensione_cranio_caudale": "int | null",
-  "distanza_oai": "int | null",
-  "posizione": {
-    "basso": "no | si",
-    "medio": "no | si",
-    "alto": "no | si",
-    "giunzione": "no | si"
-  },
-  "riflessione_peritoneale_anteriore": "sotto | cavallo | non_valutabile",
-  "infiltrazione_tessuto_adiposo": "no | si_5mm | si_5mm_plus",
-  "infiltrazione_sfinteri": "no | si",
-  "infiltrazione_organi_extra": "no | si",
-  "infiltrazione_organi_dettagli": {
-    "pavimento_pelvico": "no | si",
-    "altro": "no | si"
-  },
-  "coinvolgimento_riflessione_peritoneale": "no | si",
-  "coinvolgimento_fascia_mesorettale": "no | si",
-  "numero_linfonodi_non_conosciuto": "conosciuto | non_conosciuto",
-  "linfonodi_sospetti": "int",
-  "sedi_linfonodi": {
-    "mesorettali": "no | si",
-    "rettali_superiori": "no | si",
-    "otturatori": "no | si",
-    "iliaci": "no | si",
-    "altro": "no | si"
-  },
-  "depositi_tumorali": "no | si",
-  "emvi": "no | si",
-  "stadio_T": "T1-2 | T3ab | T3cd | T4a | T4b",
-  "stadio_N": "N0 | N+",
-  "stadio_N1c": "no | si",
-  "mrf": "no | si",
-  "metastasi": "MX | M1"
-}
+{schema_json}
 </schema>
 
 <regole_output>
@@ -51,56 +12,52 @@ Il tuo compito è estrarre informazioni strutturate dal referto RM fornito e res
 2. Rispetta esattamente i valori ammessi per ogni campo.
 3. Non usare sinonimi, abbreviazioni o varianti.
 4. I valori numerici devono essere espressi in millimetri (mm). Se nel referto le misure sono in centimetri, converti.
-5. Se un valore numerico non è presente nel referto, usa null.
-6. Non inventare informazioni non presenti nel testo. Se un dato non è valutabile o non è menzionato nel referto, assegna il valore negativo (es. "no", "N0", "MX"). Fa eccezione il campo riflessione_peritoneale_anteriore, che ammette "non_descritto".
+5. Se un valore numerico non e' presente nel referto, usa null.
+6. Non inventare informazioni non presenti nel testo. Se un dato non e' valutabile o non e' menzionato nel referto, assegna il valore negativo (es. "no", N0, MX). Fa eccezione il campo riflessione_peritoneale_anteriore, che ammette "non_descritto".
 7. Se testo e conclusione sono discordanti, prevale la conclusione.
 </regole_output>
 
 <criteri_clinici>
 
 Morfologia:
-  Se non esplicitamente indicato, usa questi criteri:
-  - Componenti aggettanti/vegetanti/endoluminali → solido_polipoide
-  - Ispessimento di parete o lesione circonferenziale/anulare → solido_anulare
-  - Se lesione mucinosa o marcatamente iperintensa nelle sequenze T2 → mucinoso
+  Se non esplicitamente indicata, usa questi criteri:
+  - Componenti aggettanti, vegetanti o endoluminali -> "solido_polipoide"
+  - Ispessimento di parete o lesione circonferenziale/anulare -> "solido_anulare"
+  - Lesione mucinosa o marcatamente iperintensa nelle sequenze T2 -> "mucinoso"
 
 Estensione assiale (ore_inizio, ore_fine):
   Considera il canale rettale come una circonferenza di 12 ore. L'arco si intende sempre in senso orario (da ore_inizio a ore_fine procedendo in senso orario). Segui queste regole nell'ordine indicato:
-
   1. Posizione non menzionata o generica senza ampiezza: se il referto non descrive la posizione circumferenziale, oppure indica solo una posizione generica (es. "parete anteriore") senza specificare l'ampiezza in quarti di circonferenza, assegna ore_inizio = null e ore_fine = null.
-
-  2. Lesione circonferenziale: se il referto indica che la lesione è circonferenziale, concentrica o che si estende circonferenzialmente, annota ore_inizio = 12 e ore_fine = 12.
-
+  2. Lesione circonferenziale: se il referto indica che la lesione e' circonferenziale, concentrica o che si estende circonferenzialmente, annota ore_inizio = 12 e ore_fine = 12.
   3. Ore esplicite nel referto: se sono indicate le ore di inizio e di fine, utilizzale direttamente.
-
   4. Posizione con ampiezza in quarti: se il referto indica sia la posizione sia l'ampiezza in quarti di circonferenza, centra l'arco sulla posizione descritta e adattane l'estensione:
-     - Un quarto di circonferenza → arco di 2 o 3 ore (esempio: parete anteriore per 1/4 → da ore 11 a ore 1, parete postero-laterale sinistra per 1/4 → da ore 3 a ore 6)
-     - Due quarti di circonferenza → arco di 5 o 6 ore (esempio: parete anteriore per 2/4 → da ore 9 a ore 3, parete postero-laterale destra per 2/4 → da ore 5 a ore 10)
-     - Tre quarti di circonferenza → arco di 8 o 9 ore (esempio: parete anteriore per 3/4 → da ore 8 a ore 4, parete postero-laterale destra per 3/4 → da ore 3 a ore 12)
-     Per posizioni intermedie, centra l'arco sulla direzione combinata (esempio: parete postero-laterale destra → centro ore 7-8).
+    - Un quarto di circonferenza -> arco di 2 o 3 ore (esempio: parete anteriore per 1/4 -> da ore 11 a ore 1, parete postero-laterale sinistra per 1/4 -> da ore 3 a ore 6)
+    - Due quarti di circonferenza -> arco di 5 o 6 ore (esempio: parete anteriore per 2/4 -> da ore 9 a ore 3, parete postero-laterale destra per 2/4 -> da ore 5 a ore 10)
+    - Tre quarti di circonferenza -> arco di 8 o 9 ore (esempio: parete anteriore per 3/4 -> da ore 8 a ore 4, parete postero-laterale destra per 3/4 -> da ore 3 a ore 12)
+    - Per posizioni intermedie, centra l'arco sulla direzione combinata (esempio: parete postero-laterale destra -> centro ore 7-8).
 
 Spessore parietale:
-  Lo spessore parietale massimo (mm).  
+  Lo spessore parietale massimo (mm).
 
 Estensione cranio-caudale:
-  L'estensione cranio-caudale (mm).  
+  L'estensione cranio-caudale (mm).
 
 Distanza OAI:
-  Distanza tra il margine inferiore del tumore e l'Orifizio Anale Interno (giunzione ano-rettale) (mm)
-  - Se il tumore tocca l'OAI annota 0. 
+  Distanza tra il margine inferiore del tumore e l'Orifizio Anale Interno (giunzione ano-rettale) (mm).
+  - Se il tumore tocca l'OAI, annota 0.
 
 Posizione:
   Altezza del tumore nel retto (retto basso, retto medio, retto alto oppure giunzione sigma-retto).
 
 Riflessione peritoneale anteriore:
-  La relazione con la riflessione peritoneale anteriore (se è a cavallo, sotto o non specificata).
-  Se la posizione del tumore è solo basso, allora annota sotto.
+  La relazione con la riflessione peritoneale anteriore (se e' a cavallo, sotto o non specificata).
+  - Se la posizione del tumore e' solo basso, annota "sotto".
 
 Infiltrazione tessuto adiposo:
-  Quanto viene infiltrato il tessuto adiposo mesorettale.
-  - lesione confinata alla parete → "no"
-  - infiltrazione lieve, entro i 5 mm → si_5mm 
-  - Tralci/digitazioni/propaggini → si_5mm_plus
+  Quanto viene infiltrato il tessuto adiposo mesorettale. Se viene scritta una misura esplicita, attieniti a quella. Altrimenti usa queste indicazioni:
+  - Lesione confinata alla parete -> "no"
+  - Infiltrazione lieve, entro i 5 mm -> "si_5mm"
+  - Tralci, digitazioni o propaggini -> "si_5mm_plus"
 
 Infiltrazione sfinteri:
   Se sono infiltrati gli sfinteri.
@@ -109,67 +66,73 @@ Infiltrazione organi extra:
   Se sono infiltrati degli organi o strutture extra mesorettali.
 
 Infiltrazione organi dettagli:
-  Da compilare se il campo infiltrazione_organi_extra è "si".
+  Da compilare se il campo infiltrazione_organi_extra e' "si".
 
 Coinvolgimento riflessione peritoneale:
-  Se è coinvolta la riflessione peritoneale.
-
-Coinvolgimento fascia mesorettale:
-  - Se è coinvolta la fascia mesorettale, o se il tumore è distante 1 mm o meno dalla fascia mesorettale.
+  Se e' coinvolta la riflessione peritoneale o il peritoneo.
+  - Se la riflessione peritoneale o il peritoneo non vengono menzionati ma nel referto viene scritto T4a, annota "si".
 
 Linfonodi sospetti:
-  Il numero minimo di linfonodi sospetti. Se un linfonodo viene dichiarato aspecifico, non considerarlo.
-  - Se il numero di linfonodi sospetti non è riportato, o non è chiaro → linfonodi_sospetti = 0
-  Criteri per determinare se un linfonodo è sospetto:
+  Il numero minimo di linfonodi sospetti. Se un linfonodo viene dichiarato aspecifico, non considerarlo. Se il numero di linfonodi sospetti non e' riportato o non e' chiaro, annota 0.
+
+  Caratteristiche maligne dei linfonodi:
+    - Eterogeneo
+    - Rotondo
+    - Margini indistinti
+  
+  Criteri per determinare se un linfonodo e' sospetto, se non scritto nel referto:
+    - Linfonodi mesorettali o rettali superiori:
+      - Sempre sospetti se mucinosi.
+      - Sospetti se grandi almeno 9 mm.
+      - Se compresi tra 5 e 9 mm, devono avere almeno 2 caratteristiche maligne.
+      - Se piu' piccoli di 5 mm, devono avere almeno 3 caratteristiche maligne.
+    - Linfonodi otturatori o iliaci interni:
+      - Sospetti se mucinosi o grandi almeno 7 mm.
 
 Numero linfonodi non conosciuto:
-  Se il numero di linfonodi sospetti non è esattamente conosciuto, annota "non_conosciuto", altrimenti annota "conosciuto".
+  Se il numero di linfonodi sospetti non e' esattamente conosciuto, annota "non_conosciuto". Altrimenti annota "conosciuto".
 
 EMVI:
   Infiltrazione diretta dei vasi mesorettali.
-  - Se nel referto indicato EMVI+ → si
-  - Se il segnale del tumore si estende a vasi, con i vasi espansi dal tumore, o se interrompe dei vasi → si
+  - Se nel referto e' indicato EMVI+ -> "si"
+  - Se il segnale del tumore si estende a vasi, con i vasi espansi dal tumore, o se interrompe dei vasi -> "si"
 
 Stadio T:
   Stadiazione T del tumore.
-  - Se rimane confinato alla parete rettale → T1-2
-  - Se si estende nel grasso mesorettale per 1-5 mm → T3ab
-  - Se si estende nel grasso mesorettale per più di 5 mm → T3cd
-  - Se invade il peritoneo o la riflessione peritoneale → T4a
-  - Se invade altri organi o strutture al di fuori del mesoretto → T4b
-  - Conclusione "T3" senza mm → T3ab
-  - Tralci/digitazioni/propaggini → T3cd
-  - Conclusione "T4" senza dettagli → T4a
-  - Infiltrazione organi/strutture (ad esempio il muscolo elevatore dell'ano) → T4b
+  - Se rimane confinato alla parete rettale, o conclusione "T1" o "T2" -> T1-2
+  - Se si estende nel grasso mesorettale -> il sub-staging T3ab/T3cd segue le stesse regole del campo infiltrazione_tessuto_adiposo: "si_5mm" -> T3ab, "si_5mm_plus" -> T3cd.
+  - Se invade il peritoneo o la riflessione peritoneale -> T4a
+  - Se invade altri organi o strutture al di fuori del mesoretto -> T4b
+  - Conclusione "T3" senza mm -> T3ab
+  - Conclusione "T4" senza dettagli -> T4a
+  - Infiltrazione diretta di altri organi o strutture (ad esempio il muscolo elevatore dell'ano, il pavimento pelvico, lo sfintere esterno, l'utero o la prostata) -> T4b
 
 Stadio N:
-  Se è presente almeno un linfonodo sospetto o un deposito tumorale annota "N+", altrimenti annota "N0".
-  Se nelle conclusioni del referto è scritto N1, N2, N+, NC, annota "N+".
+  Se e' presente almeno un linfonodo sospetto o un deposito tumorale, annota N+. Altrimenti annota N0.
+  - Se nelle conclusioni del referto e' scritto N1, N2, N+ o NC, annota N+.
 
 Depositi tumorali:
-  Se sono presenti depositi tumorali.
+  Se e' presente almeno un deposito tumorale.
+
+Coinvolgimento fascia mesorettale:
+  - Se nel referto e' scritto MRF+.
+  - Se e' coinvolta la fascia mesorettale, o se il tumore e' distante 1 mm o meno dalla fascia mesorettale.
 
 MRF:
-  - Se nel referto è scritto MRF+.
-  - Se è coinvolta la fascia mesorettale, o se il tumore è distante 1 mm o meno dalla fascia mesorettale.
+  Segue le stesse regole di coinvolgimento_fascia_mesorettale e deve avere lo stesso valore.
 
 Metastasi:
-  Stadiazione M secondo TNM (metastasi a distanza)
-  - Se presenti metastasi → M1
-  - Se è presente carcinosi peritoneale di altri reperti → M1
-  - Se presenti lesioni ossee focali di altri reperti → M1
-  - Se coinvolti linfonodi inguinali, iliaci esterni, iliaci comuni, paraortici → M1
-  - Se coinvolti linfonodi inguinali ma la posizione è solo basso → MX
-  - Altrimenti → MX
+  Stadiazione M secondo TNM (metastasi a distanza).
+  - Se presenti metastasi -> M1
+  - Se e' presente carcinosi peritoneale -> M1
+  - Se presenti lesioni ossee focali -> M1
+  - Se coinvolti linfonodi iliaci esterni, iliaci comuni o paraortici -> M1
+  - Se coinvolti linfonodi inguinali: se la posizione del tumore include solo il retto basso, annota MX. Altrimenti annota M1.
+  - Altrimenti -> MX
 
 </criteri_clinici>
 
 <regole_generali>
-- In caso di ambiguità scegli lo stadio meno avanzato, salvo eccezioni per T3cd.
+- In caso di ambiguita' scegli lo stadio meno avanzato, salvo eccezioni per T3cd.
 - Non stimare valori numerici mancanti.
 </regole_generali>
-
-<esempio>
-Referto: <referto di esempio>
-Output atteso: <json output>
-</esempio>

@@ -70,6 +70,7 @@ SYSTEM_PROMPT_2 = "system_prompt_2.txt"
 SYSTEM_PROMPT_3 = "system_prompt_3.txt"
 SYSTEM_PROMPT_4 = "system_prompt_4.txt"
 SYSTEM_PROMPT_5 = "system_prompt_5.txt"
+SYSTEM_PROMPT_6 = "system_prompt_6.txt"
 
 #################
 # Raw data fields
@@ -175,8 +176,8 @@ class InfiltrazioneTessutoAdiposo(str, Enum):
 class RiflessionePeritonealeAnteriore(str, Enum):
     SOTTO = "sotto"
     CAVALLO = "cavallo"
-    #NON_VALUTABILE = "non_valutabile"
-    NON_DESCRITTO = "non_descritto"
+    NON_VALUTABILE = "non_valutabile"
+    #NON_DESCRITTO = "non_descritto"
 
 class StadioT(str, Enum):
     T1_2 = "T1-2"
@@ -199,19 +200,23 @@ class CoinvolgimentoRiflessionePeritoneale(str, Enum):
     
 class StadioN(str, Enum):
     N0 = "N0"
-    #N1 = "N1"
-    #N2 = "N2"
+    N1 = "N1"
+    N2 = "N2"
     N_PLUS = "N+"
     
-#class StadioN1c(str, Enum):
-#    NO = "no"
-#    SI = "si"
+class StadioN1c(str, Enum):
+    NO = "no"
+    SI = "si"
     
 class MRF(str, Enum):
+    #MINUS = "no"
+    #PLUS = "si"
     MINUS = "-"
     PLUS = "+"
 
 class EMVI(str, Enum):
+    #MINUS = "no"
+    #PLUS = "si"
     MINUS = "-"
     PLUS = "+"
 
@@ -265,6 +270,7 @@ class RectalCancerStagingData(BaseModel):
     emvi: EMVI = Field(description="Extra Mural Vascular Invasion, infiltrazione diretta dei vasi mesorettali")
     stadio_T: StadioT = Field(description="Stadiazione T secondo TNM (invasione locale del tumore)")
     stadio_N: StadioN = Field(description="Stadiazione linfonodale secondo TNM")
+    stadio_N1c: StadioN1c
     mrf: MRF = Field(description="Infiltrazione della fascia mesorettale")
     metastasi: Metastasi = Field(description="Stadiazione M secondo TNM (metastasi a distanza)")
 
@@ -301,7 +307,7 @@ FEATURE_WEIGHTS = {
     "infiltrazione_organi_extra": 1, 
     "infiltrazione_organi_dettagli": 1, 
     "coinvolgimento_riflessione_peritoneale": 1, 
-    "coinvolgimento_fascia_mesorettale": 1, 
+    "coinvolgimento_fascia_mesorettale": 0.5, 
     "numero_linfonodi_non_conosciuto": 1, # meno importante
     "linfonodi_sospetti": 1,
     "sedi_linfonodi": 1, 
@@ -310,7 +316,7 @@ FEATURE_WEIGHTS = {
     "stadio_T": 1,
     "stadio_N": 1,
     "stadio_N1c": 1, 
-    "mrf": 1,
+    "mrf": 0.5,
     "metastasi": 1, 
 }
 
