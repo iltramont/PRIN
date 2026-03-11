@@ -45,6 +45,7 @@ Estensione cranio-caudale:
 Distanza OAI:
   Distanza tra il margine inferiore del tumore e l'Orifizio Anale Interno (giunzione ano-rettale) (mm).
   - Se il tumore tocca l'OAI, annota 0.
+  - La giunzione ano-rettale fa parte del retto basso
 
 Posizione:
   Altezza del tumore nel retto (retto basso, retto medio, retto alto oppure giunzione sigma-retto).
@@ -116,7 +117,7 @@ Depositi tumorali:
 
 Coinvolgimento fascia mesorettale:
   - Se nel referto e' scritto MRF+.
-  - Se e' coinvolta la fascia mesorettale, o se il tumore e' distante 1 mm o meno dalla fascia mesorettale.
+  - Se e' coinvolta la fascia mesorettale o se il tumore e' distante 1 mm o meno dalla fascia mesorettale.
 
 MRF:
   Segue le stesse regole di coinvolgimento_fascia_mesorettale e deve avere lo stesso valore.
