@@ -74,7 +74,7 @@ Coinvolgimento riflessione peritoneale:
   - Se la riflessione peritoneale o il peritoneo non vengono menzionati ma nel referto viene scritto T4a, annota "si".
 
 Linfonodi sospetti:
-  Il numero minimo di linfonodi sospetti. Se un linfonodo viene dichiarato aspecifico, non considerarlo. Se il numero di linfonodi sospetti non e' riportato o non e' chiaro, annota 0.
+  È il numero minimo di linfonodi sospetti conosciuti. Se un linfonodo viene dichiarato aspecifico, non considerarlo. Se nel referto la conclusione è N2, allora sono presenti almeno 4 linfonodi sospetti (ma potrebbero essere anche di più).
 
   Caratteristiche maligne dei linfonodi:
     - Eterogeneo
