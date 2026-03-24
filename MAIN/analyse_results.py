@@ -24,11 +24,13 @@ import model_utils
 ###############
 base_dir = Path(__file__).parent.parent
 # Parameters
-SAVE_RESULTS = True
-RESULTS_FILE = "results_baseline_stratified.jsonl"
-SAVING_FILE = "metrics_baseline_stratified.csv"
+SAVE_RESULTS = True 
+RESULTS_FILE = "new_results_mistral-large-3.jsonl"
+SAVING_FILE = "new_metrics_mistral-large-3.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
 ANN_MODEL = constants.RectalCancerStagingData
+
+SPLITS = ('train', 'validation', 'test')
 
 # Set plot style
 plt.style.use('ggplot')
@@ -55,40 +57,40 @@ with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
 ############
 rows = []
 for field in reg_fields:
-    for split in ('validation', 'test'):
-        actual, predicted = [], []
-        for row in results:
-            if row['split'] == split:
-                actual.append(row['actual'][field])
-                predicted.append(row['prediction'][field])
-        if len(predicted) == 0:
-            continue
-        # Liste pulite
-        act, pred = [], []
-        act_missing, pred_missing = [], []
-        for a, p in zip(actual, predicted):
-            # Missing = None
-            a_missing = (a is None)
-            p_missing = (p is None)
-            act_missing.append(1 if a_missing else 0)
-            pred_missing.append(1 if p_missing else 0)
-            # Valori validi
-            if not a_missing and not p_missing:
-                act.append(a)
-                pred.append(p)
-        # MAPE: rimuovi gli zeri da y_true
-        act_mape = [x for x in act if x != 0]
-        pred_mape = [p for x, p in zip(act, pred) if x != 0]
-        m = {
-            'field': field,
-            'split': split,
-            'mae': mean_absolute_error(act, pred) if len(act) > 0 else None,
-            'mape': mean_absolute_percentage_error(act_mape, pred_mape) if len(act_mape) > 0 else None,
-            'f1_missing': f1_score(act_missing, pred_missing, average='macro', zero_division=0),
-            'precision_missing': f1_score(act_missing, pred_missing, zero_division=0),
-            'recall_missing': f1_score(act_missing, pred_missing, zero_division=0)
-        }
-        rows.append(pd.Series(m))
+    #for split in SPLITS:
+    actual, predicted = [], []
+    for row in results:
+        #if row['split'] == split:
+            actual.append(row['actual'][field])
+            predicted.append(row['prediction'][field])
+    if len(predicted) == 0:
+        continue
+    # Liste pulite
+    act, pred = [], []
+    act_missing, pred_missing = [], []
+    for a, p in zip(actual, predicted):
+        # Missing = None
+        a_missing = (a is None)
+        p_missing = (p is None)
+        act_missing.append(1 if a_missing else 0)
+        pred_missing.append(1 if p_missing else 0)
+        # Valori validi
+        if not a_missing and not p_missing:
+            act.append(a)
+            pred.append(p)
+    # MAPE: rimuovi gli zeri da y_true
+    act_mape = [x for x in act if x != 0]
+    pred_mape = [p for x, p in zip(act, pred) if x != 0]
+    m = {
+        'field': field,
+        #'split': split,
+        'mae': mean_absolute_error(act, pred) if len(act) > 0 else None,
+        'mape': mean_absolute_percentage_error(act_mape, pred_mape) if len(act_mape) > 0 else None,
+        'f1_missing': f1_score(act_missing, pred_missing, average='macro', zero_division=0),
+        'precision_missing': f1_score(act_missing, pred_missing, zero_division=0),
+        'recall_missing': f1_score(act_missing, pred_missing, zero_division=0)
+    }
+    rows.append(pd.Series(m))
 df_reg = pd.DataFrame(rows)
 
 
@@ -122,28 +124,28 @@ for i, field in enumerate(bin_fields):
     if USE_SCORES:
         # Trova soglia ottimale
         best_threshold = get_best_threshold_binary(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
-    for split in ('validation', 'test'):
-        if field not in ANN_MODEL.model_fields.keys():
-            continue
-        actual, predicted = [], []
-        for row in results:
-            if row['split'] == split:
-                actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
-                predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
-        if len(predicted) == 0:
-            continue
-        if best_threshold is not None:
-            # Applica soglia
-            predicted = (predicted >= best_threshold).astype(int)
-        m = {
-            'field': field,
-            'split': split, 
-            'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
-            'f1': f1_score(actual, predicted, zero_division=0),
-            'mcc': matthews_corrcoef(actual, predicted),
-            'best_threshold': best_threshold
-        }
-        df.append(pd.Series(m))
+    #for split in SPLITS:
+    if field not in ANN_MODEL.model_fields.keys():
+        continue
+    actual, predicted = [], []
+    for row in results:
+        #if row['split'] == split:
+            actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+            predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
+    if len(predicted) == 0:
+        continue
+    if best_threshold is not None:
+        # Applica soglia
+        predicted = (predicted >= best_threshold).astype(int)
+    m = {
+        'field': field,
+        #'split': split, 
+        'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
+        'f1': f1_score(actual, predicted, zero_division=0),
+        'mcc': matthews_corrcoef(actual, predicted),
+        'best_threshold': best_threshold
+    }
+    df.append(pd.Series(m))
 df_binary = pd.DataFrame(df)
 
 
@@ -152,12 +154,12 @@ df_binary = pd.DataFrame(df)
 ################
 df = []
 for i, field in enumerate(clas_fields):
-    for split in ('validation', 'test'):
+    #for split in SPLITS:
         if field not in ANN_MODEL.model_fields.keys():
             continue
         actual, predicted = [], []
         for row in results:
-            if row['split'] == split:
+            #if row['split'] == split:
                 actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
                 predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
         if len(predicted) == 0:
@@ -167,7 +169,7 @@ for i, field in enumerate(clas_fields):
             predicted = np.argmax(predicted, axis=-1)
         m = {
             'field': field,
-            'split': split,
+            #'split': split,
             'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
             'mcc': matthews_corrcoef(actual, predicted)
         }
@@ -208,38 +210,38 @@ for field in multi_fields:
         # Optimal thresholds
         thresholds = get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]),
                                                     np.array(results['validation']['predicted'][field]))
-    for split in ('validation', 'test'):
-        if field not in ANN_MODEL.model_fields.keys():
-            continue
-        actual, predicted = [], []
-        for row in results:
-            if row['split'] == split:
-                actual.append(model_utils.flags_to_bits(row['actual'][field]))
-                predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
-        actual = np.array(actual)
-        predicted = np.array(predicted)
-        if len(predicted) == 0:
-            continue
-        if thresholds is not None:
-            thresholds = np.array(thresholds)
-            predicted = (predicted > thresholds).astype(int)
+    #for split in SPLITS:
+    if field not in ANN_MODEL.model_fields.keys():
+        continue
+    actual, predicted = [], []
+    for row in results:
+        #if row['split'] == split:
+            actual.append(model_utils.flags_to_bits(row['actual'][field]))
+            predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
+    actual = np.array(actual)
+    predicted = np.array(predicted)
+    if len(predicted) == 0:
+        continue
+    if thresholds is not None:
+        thresholds = np.array(thresholds)
+        predicted = (predicted > thresholds).astype(int)
+    m = {
+        'field': field,
+        #'split': split,
+        'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
+        'f1_samples': f1_score(actual, predicted, average='samples', zero_division=0)
+    }
+    df.append(pd.Series(m))
+    for label, i in label_to_id_map[field]['label_to_id'].items():
+        s = f'{field}_{label}'
         m = {
-            'field': field,
-            'split': split,
-            'f1_macro': f1_score(actual, predicted, average='macro', zero_division=0),
-            'f1_samples': f1_score(actual, predicted, average='samples', zero_division=0)
+            'field': s,
+            #'split': split,
+            'f1_macro': f1_score(actual[:, i], predicted[:, i], average='macro', zero_division=0),
+            'f1': f1_score(actual[:, i], predicted[:, i], zero_division=0),
+            'best_threshold': thresholds[i] if thresholds is not None else None
         }
         df.append(pd.Series(m))
-        for label, i in label_to_id_map[field]['label_to_id'].items():
-            s = f'{field}_{label}'
-            m = {
-                'field': s,
-                'split': split,
-                'f1_macro': f1_score(actual[:, i], predicted[:, i], average='macro', zero_division=0),
-                'f1': f1_score(actual[:, i], predicted[:, i], zero_division=0),
-                'best_threshold': thresholds[i] if thresholds is not None else None
-            }
-            df.append(pd.Series(m))
 df_multilabel = pd.DataFrame(df)
 
 
@@ -247,7 +249,8 @@ df_multilabel = pd.DataFrame(df)
 # Save
 ######
 total = pd.concat([df_reg, df_binary, df_classification, df_multilabel], ignore_index=True)
-total.set_index(['field', 'split'], inplace=True)
+#total.set_index(['field', 'split'], inplace=True)
+total.set_index(['field'], inplace=True)
 print(total)
 
 if SAVE_RESULTS:

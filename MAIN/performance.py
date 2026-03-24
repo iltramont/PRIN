@@ -12,31 +12,34 @@ base_dir = Path(__file__).parent.parent
 ANN_MODEL = constants.RectalCancerStagingData
 
 RESULT_FILES = (
-    'results_baseline_most_frequent.jsonl',
-    'results_baseline_uniform.jsonl',
-    'results_baseline_stratified.jsonl',
-    'results_gpt-4.1-nano.jsonl',
-    'results_gpt-4.1-nano-tuned.jsonl',
-    'results_gpt-4.1-nano-tuned-oversampling.jsonl',
-    'results_gpt-4.1-mini.jsonl',
-    'results_gpt-4.1.jsonl',
-    'results_gpt-4.1-tuned-oversampling.jsonl',
-    'results_gpt-4.1-tuned-MMR.jsonl',
-    'results_gpt-4.1-tuned-similar_examples.jsonl',
-    'results_gpt-5-nano.jsonl',
-    'results_gpt-5.2.jsonl',
-    'results_gpt-5.2-reasoning.jsonl',
-    'results_gpt-5.2-low-reasoning.jsonl',
-    'results_mistral_large_3.jsonl',
-    'results_opus-4.6.jsonl',
-    'results_opus-4.6_similar_examples.jsonl',
-    'results_opus-4.6_MMR.jsonl'
+#    'results_baseline_most_frequent.jsonl',
+#    'results_baseline_uniform.jsonl',
+#    'results_baseline_stratified.jsonl',
+    'new_results_gpt-4.1-nano.jsonl',
+    'new_results_gpt-4.1-nano_few-shots.jsonl',
+    'new_results_gpt-4.1-nano_MMR.jsonl',
+#    'results_gpt-4.1-nano-tuned.jsonl',
+#    'results_gpt-4.1-nano-tuned-oversampling.jsonl',
+    'new_results_gpt-4.1-mini.jsonl',
+    'new_results_gpt-4.1.jsonl',
+#    'results_gpt-4.1-tuned-oversampling.jsonl',
+#    'results_gpt-4.1-tuned-MMR.jsonl',
+#    'results_gpt-4.1-tuned-similar_examples.jsonl',
+#    'results_gpt-5-nano.jsonl',
+#    'results_gpt-5.2.jsonl',
+#    'results_gpt-5.2-reasoning.jsonl',
+#    'results_gpt-5.2-low-reasoning.jsonl',
+    'new_results_mistral-large-3.jsonl',
+    'new_results_opus-4.6.jsonl',
+#    'results_opus-4.6_similar_examples.jsonl',
+#    'results_opus-4.6_MMR.jsonl'
 )
 
 
 result_dfs = []
 for f in RESULT_FILES:
     data = load_results_data(f, base_dir/"data"/"inference", ANN_MODEL)
+    print(len(data))
     scores = []
     for r in data:
         row = [
@@ -55,8 +58,6 @@ result_df = result_df.pivot(index=['id', 'split'], columns='model', values='scor
 result_df.sort_values(by=['split', 'id'], ascending=[False, True], inplace=True)
 
 result_df.to_csv(base_dir/"data"/"metrics"/"scores.csv")
-
-print(result_df)
 
 
 

@@ -84,12 +84,7 @@ def reg_score(actual, prediction) -> float:
         return 0.0
 
 def stadio_n_score(actual, prediction) -> float:
-    positive_states = [constants.StadioN.N1.value, constants.StadioN.N2.value, constants.StadioN.N_PLUS.value]
     if actual == prediction:
-        # Copre anche il caso N0, N0
-        return 1.0
-    if (actual in positive_states) and (prediction in positive_states):
-        # Copre i casi (N1, N2), (N1, N+), (N2, N+)
         return 1.0
     else:
         return 0.0
@@ -163,11 +158,29 @@ def compare_prediction(actual: BaseModel, prediction: BaseModel, weights=constan
             w = weights[f]
             row = [f, a, p, float(int(a == p)), w]
         rows.append(row)
-    return pd.DataFrame.from_records(rows, columns=['field', 'actual', 'perdicted', 'score', 'weight'])
+    return pd.DataFrame.from_records(rows, columns=['field', 'actual', 'prediction', 'score', 'weight']).set_index('field')
+
+
+def add_penalties(comp_df: pd.DataFrame) -> None:
+    if comp_df.loc['depositi_tumorali', 'prediction'] == 'si' and comp_df.loc['stadio_N', 'prediction'] == constants.StadioN.N0.value:
+        comp_df.loc[['depositi_tumorali', 'stadio_N'], 'score'] = [0, 0]
+    
+    if ((comp_df.loc['coinvolgimento_fascia_mesorettale', 'prediction'] == 'si' and
+         comp_df.loc['mrf', 'prediction'] == constants.MRF.MINUS.value)
+         or (comp_df.loc['coinvolgimento_fascia_mesorettale', 'prediction'] == 'no' and
+             comp_df.loc['mrf', 'prediction'] == constants.MRF.PLUS.value)):
+        comp_df.loc[['coinvolgimento_fascia_mesorettale', 'mrf'], 'score'] = [0, 0]
+    
+    if ((comp_df.loc['infiltrazione_organi_extra', 'prediction'] == 'si' and
+         comp_df.loc['infiltrazione_organi_dettagli', 'prediction'] == [])
+         or (comp_df.loc['infiltrazione_organi_extra', 'prediction'] == 'no' and
+             comp_df.loc['infiltrazione_organi_dettagli', 'prediction'] != [])):
+        comp_df.loc[['infiltrazione_organi_extra', 'infiltrazione_organi_dettagli'], 'score'] = [0, 0]
 
 
 def prediction_score(actual: BaseModel, prediction: BaseModel, weights=constants.FEATURE_WEIGHTS) -> float:
     comp_df = compare_prediction(actual, prediction, weights=weights)
+    add_penalties(comp_df)
     return (comp_df['score'] * comp_df['weight']).sum() / comp_df['weight'].sum() 
 
 
@@ -175,7 +188,11 @@ if __name__ == '__main__':
     from pprint import pprint
     base_dir = Path(__file__).parent.parent
     ANN_MODEL = constants.RectalCancerStagingData
-    data = load_results_data('results_opus-4.6.jsonl', base_dir/"data"/"inference", ANN_MODEL)
-    print(compare_prediction(data[0]['actual'], data[0]['prediction']))
-    print(prediction_score(data[0]['actual'], data[0]['prediction']))
+    data = load_results_data('new_results_gpt-4.1-mini.jsonl', base_dir/"data"/"inference", ANN_MODEL)
+    comp_df = compare_prediction(data[0]['actual'], data[0]['prediction'])
+    score = prediction_score(data[0]['actual'], data[0]['prediction'])
+    #print(comp_df)
+    #print(comp_df.loc[['depositi_tumorali', 'stadio_N'], 'score'])
+    comp_df.loc[['depositi_tumorali', 'stadio_N'], 'score'] = [0, 0]
+    #print(comp_df.loc[['depositi_tumorali', 'stadio_N'], 'score'])
 

@@ -76,6 +76,17 @@ def add_examples_to_user_prompt(user_report_text: str, examples: list[AnnotatedR
     parts.append("**Output:**")
     
     return "\n\n".join(parts)
+
+def add_examples_to_system_prompt(system_prompt: str, examples: list[AnnotatedRectalCancerReport]) -> str:
+    if examples:
+        s = f"\n<esempi>"
+        for i, ex in enumerate(examples, 1):
+            s = s + f"\n\n<esempio>\n<referto>\n{ex.report_text}\n</referto>"
+            s = s + f"\n<output>\n{ex.report_data.model_dump_json(indent=2)}\n</output>\n</esempio>"
+        s = s + f"\n\n</esempi>"
+        return f'{system_prompt}\n{s}'
+    else: 
+        return system_prompt
     
     
 

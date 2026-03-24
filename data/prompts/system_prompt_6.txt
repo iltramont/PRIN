@@ -91,7 +91,9 @@ Linfonodi sospetti:
       - Sospetti se mucinosi o grandi almeno 7 mm.
 
 Numero linfonodi non conosciuto:
-  Se il numero di linfonodi sospetti non e' esattamente conosciuto, annota "non_conosciuto". Altrimenti annota "conosciuto".
+  - "conosciuto" se il numero minimo di linfonodi sospetti è chiaramente deducibile.
+  - "non_conosciuto" se non si capisce il numero esatto di linfonodi sospetti.
+
 
 EMVI:
   Infiltrazione diretta dei vasi mesorettali.

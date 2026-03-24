@@ -297,7 +297,7 @@ FEATURE_WEIGHTS = {
     "morfologia": 1,
     #"ore_inizio": 1,
     #"ore_fine": 1,
-    'ore': 1,  # meno importante
+    'ore': 0.2,  # meno importante
     "spessore_parietale": 1, # Meno importante
     "estensione_cranio_caudale": 1, 
     "distanza_oai": 1,
@@ -306,7 +306,7 @@ FEATURE_WEIGHTS = {
     "infiltrazione_tessuto_adiposo": 1,
     "infiltrazione_sfinteri": 1,
     "infiltrazione_organi_extra": 1, 
-    "infiltrazione_organi_dettagli": 1, 
+    "infiltrazione_organi_dettagli": 0.5, 
     "coinvolgimento_riflessione_peritoneale": 1, 
     "coinvolgimento_fascia_mesorettale": 0.5, 
     "numero_linfonodi_non_conosciuto": 1, # meno importante
