@@ -322,7 +322,3 @@ if __name__ == "__main__":
     print(f'multilabel:\n{mc_fields}')
     field_values = get_field_values(model_type)
     pprint(field_values)
-    n_classes = get_number_of_classes(model_type)
-    pprint(n_classes)
-    label_to_id_map = create_label_to_id_map(model_type)
-    pprint(label_to_id_map)

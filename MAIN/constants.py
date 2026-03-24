@@ -133,6 +133,7 @@ class InfiltrazioneOrganiDettagli(str, Enum):
     ALTRO = "altro"
 
 class InfiltrazioneOrganiDettagliFlags(BaseModel):
+    muscolo_elevatore: Flag
     pavimento_pelvico: Flag
     altro: Flag
     
