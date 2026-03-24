@@ -47,13 +47,12 @@ data = pd.read_csv(data_path)
 print(f'{data.shape = }')
 
 # Keep only report and target columns
-target_columns = list(constants.Annotations.model_fields.keys())
-target_columns_extended = model_utils.get_binary_classification_fields(constants.RectalCancerStagingData)
-for t in target_columns_extended:
-    if t not in target_columns:
-        target_columns.append(t)
-
-
+target_columns = list(constants.RectalCancerStagingData.model_fields.keys())
+#target_columns_extended = model_utils.get_binary_classification_fields(constants.RectalCancerStagingData)
+#for t in target_columns_extended:
+#    if t not in target_columns:
+#        target_columns.append(t)
+        
 ###########
 # Splitting
 ###########
@@ -106,7 +105,7 @@ print(f'\nSplitatto il dataset\n{X_train.shape = }\n{X_test.shape = }\n{X_valida
 ##########################
 # Visualize stratification
 ##########################
-plot_columns = model_utils.get_classification_fields(constants.Annotations) + model_utils.get_binary_classification_fields(constants.Annotations)
+plot_columns = model_utils.get_classification_fields(constants.RectalCancerStagingData) + model_utils.get_binary_classification_fields(constants.RectalCancerStagingData)
 
 n_columns = 3
 n_rows, r = divmod(len(plot_columns), n_columns)
@@ -133,7 +132,7 @@ plt.show()
 # Multilabel
 ############
 
-plot_columns = model_utils.get_multiple_choice_fields(constants.Annotations)
+plot_columns = model_utils.get_multiple_choice_fields(constants.RectalCancerStagingData)
 
 n_columns = 2
 n_rows, r = divmod(len(plot_columns), n_columns)

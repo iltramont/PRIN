@@ -94,13 +94,12 @@ TEST_SIZE = 0.2
 VALIDATION_SIZE = 0.2
 STRATIFY_COLUMNS = (
     'morfologia',
-    'infiltrazione_tessuto_adiposo',
-    'coinvolgimento_riflessione_peritoneale',
+    'infiltrazione_organi_dettagli',
     'stadio_T',
-    'stadio_N1c',
+    'depositi_tumorali',
     'emvi',
     'metastasi',
-    'infiltrazione_sfinteri',
+    'infiltrazione_sfinteri'
 )
 
 
@@ -129,6 +128,7 @@ class PosizioneFlags(BaseModel):
     )
     
 class InfiltrazioneOrganiDettagli(str, Enum):
+    MUSCOLO_ELEVATORE = "muscolo_elevatore"
     PAVIMENTO_PELVICO =  "pavimento_pelvico"
     ALTRO = "altro"
 
@@ -176,8 +176,8 @@ class InfiltrazioneTessutoAdiposo(str, Enum):
 class RiflessionePeritonealeAnteriore(str, Enum):
     SOTTO = "sotto"
     CAVALLO = "cavallo"
-    NON_VALUTABILE = "non_valutabile"
-    #NON_DESCRITTO = "non_descritto"
+    #NON_VALUTABILE = "non_valutabile"
+    NON_DESCRITTO = "non_descritto"
 
 class StadioT(str, Enum):
     T1_2 = "T1-2"
@@ -200,8 +200,8 @@ class CoinvolgimentoRiflessionePeritoneale(str, Enum):
     
 class StadioN(str, Enum):
     N0 = "N0"
-    N1 = "N1"
-    N2 = "N2"
+    #N1 = "N1"
+    #N2 = "N2"
     N_PLUS = "N+"
     
 class StadioN1c(str, Enum):
@@ -209,16 +209,16 @@ class StadioN1c(str, Enum):
     SI = "si"
     
 class MRF(str, Enum):
-    #MINUS = "no"
-    #PLUS = "si"
-    MINUS = "-"
-    PLUS = "+"
+    MINUS = "no"
+    PLUS = "si"
+    #MINUS = "-"
+    #PLUS = "+"
 
 class EMVI(str, Enum):
-    #MINUS = "no"
-    #PLUS = "si"
-    MINUS = "-"
-    PLUS = "+"
+    MINUS = "no"
+    PLUS = "si"
+    #MINUS = "-"
+    #PLUS = "+"
 
 class Metastasi(str, Enum):
     MX = "MX"
@@ -270,7 +270,7 @@ class RectalCancerStagingData(BaseModel):
     emvi: EMVI = Field(description="Extra Mural Vascular Invasion, infiltrazione diretta dei vasi mesorettali")
     stadio_T: StadioT = Field(description="Stadiazione T secondo TNM (invasione locale del tumore)")
     stadio_N: StadioN = Field(description="Stadiazione linfonodale secondo TNM")
-    stadio_N1c: StadioN1c
+    #stadio_N1c: StadioN1c
     mrf: MRF = Field(description="Infiltrazione della fascia mesorettale")
     metastasi: Metastasi = Field(description="Stadiazione M secondo TNM (metastasi a distanza)")
 
