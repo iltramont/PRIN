@@ -23,7 +23,6 @@ MISTRAL_EMBED = "mistral-embed-2312"
 #########
 # Mistral
 #########
-MISTRAL_MODEL_30_EPOCHS = "ft:classifier:ministral-3b-latest:6f88df17:20260201:63a1a8ac"
 MISTRAL_TRAIN_FILE_NAME = "train_mistral.jsonl"
 MISTRAL_VALIDATION_FILE_NAME = "validation_mistral.jsonl"
 MISTRAL_TEST_FILE_NAME = "test_mistral.jsonl"
@@ -36,13 +35,11 @@ MISTRAL_LARGE_3 = "mistral-large-2512"
 OPENAI_GPT_4_1_NANO = "gpt-4.1-nano-2025-04-14"
 OPENAI_GPT_4_1_MINI = "gpt-4.1-mini-2025-04-14"
 OPENAI_GPT_4_1      = "gpt-4.1-2025-04-14"
-OPENAI_GPT_5_NANO   = "gpt-5-nano-2025-08-07"
 OPENAI_GPT_5_2      = "gpt-5.2-2025-12-11"
+OPENAI_GPT_5_4      = "gpt-5.4-2026-03-05"
 
 # Tuned models
-TUNED_GPT_4_1_NANO = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:D8F5Ak8z"
-TUNED_GPT_4_1_NANO_OVERSAMPLING = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:D8k71VLO"
-TUNED_GPT_4_1_OVERSAMPLING = "ft:gpt-4.1-2025-04-14:luca-tramonti:report-extractor:D8nTVX9B"
+TUNED_GPT_4_1_NANO = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:DNDCPvfn"
 
 OPENAI_TRAIN_FILE_NAME      = "openai_train.jsonl"
 OPENAI_VALIDATION_FILE_NAME = "openai_validation.jsonl"
