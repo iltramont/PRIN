@@ -25,8 +25,8 @@ import model_utils
 base_dir = Path(__file__).parent.parent
 # Parameters
 SAVE_RESULTS = True 
-RESULTS_FILE = "new_results_gpt-5.4_reasoning.jsonl"
-SAVING_FILE = "new_metrics_gpt-5.4_reasoning.csv"
+RESULTS_FILE = "new_results_gpt-4.1-nano_FT_OS.jsonl"
+SAVING_FILE = "new_metrics_gpt-4.1-nano_FT_OS.csv"
 USE_SCORES = False  # If True, use scores instead of hard predictions
 ANN_MODEL = constants.RectalCancerStagingData
 
