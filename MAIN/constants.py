@@ -308,7 +308,7 @@ FEATURE_WEIGHTS = {
     "coinvolgimento_riflessione_peritoneale": 1, 
     "coinvolgimento_fascia_mesorettale": 0.5, 
     "numero_linfonodi_non_conosciuto": 1, # meno importante
-    "linfonodi_sospetti": 1,
+    "linfonodi_sospetti": 0.5,
     "sedi_linfonodi": 1, 
     "depositi_tumorali": 1,
     "emvi": 1, 
