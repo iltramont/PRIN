@@ -30,6 +30,8 @@ RESULT_FILES = (
     'new_results_opus-4.6.jsonl',
 #    'results_opus-4.6_similar_examples.jsonl',
 #    'results_opus-4.6_MMR.jsonl'
+    'new_results_llama-3b_FT.jsonl',
+    'new_results_llama-1b_FT.jsonl',
 )
 
 

@@ -179,6 +179,8 @@ def add_penalties(comp_df: pd.DataFrame) -> None:
 
 
 def prediction_score(actual: BaseModel, prediction: BaseModel, weights=constants.FEATURE_WEIGHTS) -> float:
+    if prediction is None:
+        return 0.0
     comp_df = compare_prediction(actual, prediction, weights=weights)
     add_penalties(comp_df)
     return (comp_df['score'] * comp_df['weight']).sum() / comp_df['weight'].sum() 

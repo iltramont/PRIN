@@ -52,7 +52,11 @@ OPENAI_TRAIN_OVERSAMPLING_FILE_NAME = "openai_train_oversampling.jsonl"
 ###########
 CLAUDE_OPUS_4_6 = "claude-opus-4-6"
 
-
+#######
+# Llama
+#######
+LLAMA_3_2_3B_TUNED = "iltramont/llama-3b-report-extractor"
+LLAMA_3_2_1B_TUNED = "iltramont/llama-1b-report-extractor"
 
 ############
 # File names
@@ -69,6 +73,7 @@ SYSTEM_PROMPT_3 = "system_prompt_3.txt"
 SYSTEM_PROMPT_4 = "system_prompt_4.txt"
 SYSTEM_PROMPT_5 = "system_prompt_5.txt"
 SYSTEM_PROMPT_6 = "system_prompt_6.txt"
+SYSTEM_PROMPT_SHORT = "system_prompt_short.txt"
 
 #################
 # Raw data fields
