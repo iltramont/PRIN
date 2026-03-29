@@ -22,6 +22,7 @@ RESULT_FILES = (
     'new_results_gpt-4.1-nano_FT_OS.jsonl',
     'new_results_gpt-4.1-mini.jsonl',
     'new_results_gpt-4.1.jsonl',
+    'new_results_gpt-4.1_FT.jsonl',
 #    'results_gpt-4.1-tuned-oversampling.jsonl',
 #    'results_gpt-4.1-tuned-MMR.jsonl',
 #    'results_gpt-4.1-tuned-similar_examples.jsonl',

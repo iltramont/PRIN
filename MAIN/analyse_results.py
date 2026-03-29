@@ -8,6 +8,7 @@ import matplotlib
 from pprint import pprint
 from sklearn.metrics import (ConfusionMatrixDisplay,
                              f1_score,
+                             recall_score,
                              matthews_corrcoef,
                              confusion_matrix,
                              mean_absolute_error,
@@ -88,7 +89,7 @@ for field in reg_fields:
         'mape': mean_absolute_percentage_error(act_mape, pred_mape) if len(act_mape) > 0 else None,
         'f1_missing': f1_score(act_missing, pred_missing, average='macro', zero_division=0),
         'precision_missing': f1_score(act_missing, pred_missing, zero_division=0),
-        'recall_missing': f1_score(act_missing, pred_missing, zero_division=0)
+        'recall_missing': recall_score(act_missing, pred_missing, zero_division=0)
     }
     rows.append(pd.Series(m))
 df_reg = pd.DataFrame(rows)
