@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 import matplotlib
 from matplotlib.colors import ListedColormap
 import matplotlib.gridspec as gridspec
+import matplotlib.patches as mpatches
+
 from PIL import Image
 
 
@@ -30,7 +32,6 @@ from scipy import stats
 # Preliminaries
 ###############
 base_dir = Path(__file__).parent.parent
-#matplotlib.use("QtAgg")
 # Parameters
 RESULTS_FILE = "new_results_gpt-4.1-nano_FT_OS.jsonl"
 MODEL_NAME_PLOT = "GPT 4.1 Nano FT OS"
@@ -38,14 +39,11 @@ MODEL_NAME_PLOT = "GPT 4.1 Nano FT OS"
 os.makedirs(base_dir / "immagini" / "new_gpt-4.1-nano_FT_OS", exist_ok=True)
 image_dir = base_dir / "immagini" / "new_gpt-4.1-nano_FT_OS"
 
-USE_SCORES = False  # If True, use scores instead of hard predictions
-USE_JSONL = True
 ANN_MODEL = constants.RectalCancerStagingData
 
 
 # Set plot style
 plt.style.use('ggplot')
-#sns.set_palette('hls')
 # Colors
 finomnia_palette = sns.color_palette(('#db038a',   # Pink
                                       '#66218a',   # Violet
@@ -55,23 +53,31 @@ finomnia_palette = sns.color_palette(('#db038a',   # Pink
 sns.set_palette(finomnia_palette)
 
 with open(base_dir / "data" / "inference" / RESULTS_FILE, "r") as f:
-    if USE_JSONL:
-        results = [json.loads(line) for line in f]
-        reg_fields = model_utils.get_regression_fields(ANN_MODEL)
-        clas_fields = model_utils.get_classification_fields(ANN_MODEL)
-        multi_fields = model_utils.get_multiple_choice_fields(ANN_MODEL)
-        bin_fields = model_utils.get_binary_classification_fields(ANN_MODEL)
-        label_to_id_map = model_utils.create_label_to_id_map(ANN_MODEL)
-        bin_fields = [x for x in bin_fields if x in ANN_MODEL.model_fields.keys()]
-    else:
-        results = json.load(f)
-        for field, d in results['info']['label_to_id_map'].items():
-            d['id_to_label'] = {int(k): v for k, v in d['id_to_label'].items()}
-            reg_fields = results['info']['regression_fields']
-            clas_fields = results['info']['classification_fields']
-            multi_fields = results['info']['multiple_choice_fields']
-            bin_fields = results['info']['binary_classification_fields']
-            label_to_id_map = results['info']['label_to_id_map']
+    results = [json.loads(line) for line in f]
+
+reg_fields = model_utils.get_regression_fields(ANN_MODEL)
+clas_fields = model_utils.get_classification_fields(ANN_MODEL)
+multi_fields = model_utils.get_multiple_choice_fields(ANN_MODEL)
+bin_fields = model_utils.get_binary_classification_fields(ANN_MODEL)
+label_to_id_map = model_utils.create_label_to_id_map(ANN_MODEL)
+bin_fields = [x for x in bin_fields if x in ANN_MODEL.model_fields.keys()]
+
+
+def combine_and_save(saved_paths, output_path):
+    if len(saved_paths) == 0:
+        return
+    imgs = [Image.open(p) for p in saved_paths]
+    extra_h = int(imgs[0].height / 20)
+    total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
+    max_w = max(img.width for img in imgs) + 2 * extra_h
+    combined = Image.new("RGB", (max_w, total_h), color="white")
+    y_offset = extra_h
+    for img in imgs:
+        combined.paste(img, (extra_h, y_offset))
+        y_offset += img.height + extra_h
+    combined.save(output_path)
+    for p in saved_paths:
+        p.unlink(missing_ok=True)
 
 def hex_to_rgb(hex_color):
     hex_color = hex_color.lstrip("#")
@@ -191,17 +197,13 @@ for field in reg_fields:
             ha="center", va="center", fontsize='x-large', fontweight="bold")
 
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(row['actual'][field])
-                    predicted.append(row['prediction'][field])
-            actual = np.array(actual)
-            predicted = np.array(predicted)
-        else:
-            predicted = np.array(results[split]['predicted'][field], dtype=object)
-            actual = np.array(results[split]['actual'][field], dtype=object)
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(row['actual'][field])
+                predicted.append(row['prediction'][field])
+        actual = np.array(actual)
+        predicted = np.array(predicted)
         if len(predicted) == 0:
             continue
         # Liste stringhe
@@ -259,7 +261,6 @@ for field in reg_fields:
             act_j = act + np.random.normal(0, jitter_strength, size=len(act))
             pred_j = pred + np.random.normal(0, jitter_strength, size=len(pred))
             ax.scatter(act_j, pred_j, alpha=0.6, c=colors)
-            import matplotlib.patches as mpatches
 
             correct_patch = mpatches.Patch(color=finomnia_palette[-1], label="Correct")
             wrong_patch   = mpatches.Patch(color=finomnia_palette[0],  label="Wrong")
@@ -327,48 +328,13 @@ for field in reg_fields:
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     saved_paths.append(out_path)
     
-if len(saved_paths) > 0:
-    imgs = [Image.open(p) for p in saved_paths]
 
-    # Altezza totale
-    extra_h = int(imgs[0].height / 20)
-    total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
-    # Larghezza massima
-    max_w = max(img.width for img in imgs) + 2 * extra_h
-    combined = Image.new("RGB", (max_w, total_h), color="white")
-
-    y_offset = extra_h
-    for img in imgs:
-        combined.paste(img, (extra_h, y_offset))
-        y_offset += img.height + extra_h
-
-    combined.save(image_dir / "regression_fields.png")
-    for p in saved_paths:
-        p.unlink(missing_ok=True)
+combine_and_save(saved_paths, image_dir / "regression_fields.png")
 
 
 #######################
 # Binary Classification
 #######################
-def get_best_threshold_binary(y_true: np.ndarray, pred_prob: np.ndarray) -> float:
-    """
-    Calcola la soglia ottimale per classificazione binaria
-    massimizzando l'F1 score.
-
-    Args:
-        y_true: array delle etichette vere (0 o 1)
-        pred_prob: array delle probabilità previste dal modello (float tra 0 e 1)
-
-    Returns:
-        best_threshold: soglia ottimale (float)
-    """
-    precisions, recalls, thresholds = precision_recall_curve(y_true, pred_prob)
-    # Calcola F1 score
-    f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-8)
-    # thresholds ha lunghezza len(f1_scores) - 1 → consideriamo solo i primi f1_scores
-    best_index = np.argmax(f1_scores[:-1])
-    best_threshold = thresholds[best_index]
-    return float(best_threshold)
 
 n_cols = 5
 n_rows = math.ceil(len(bin_fields) / n_cols)
@@ -410,31 +376,18 @@ fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
         ha="center", va="center", fontsize='x-large', fontweight="bold")
 
 for i, field in enumerate(bin_fields):
-    best_threshold = None
-    if USE_SCORES:
-        # Trova soglia ottimale
-        best_threshold = get_best_threshold_binary(np.array(results['validation']['actual'][field]), np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            if field not in ANN_MODEL.model_fields.keys():
-                continue
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
-                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
-        else:
-            predicted = np.array(results[split]['predicted'][field])
-            actual = np.array(results[split]['actual'][field])
+        if field not in ANN_MODEL.model_fields.keys():
+            continue
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
         if len(predicted) == 0:
             continue
-        if best_threshold is not None:
-            # Applica soglia
-            predicted = (predicted >= best_threshold).astype(int)
-            
         actual    = [label_to_id_map[field]['id_to_label'][x] for x in actual]
         predicted = [label_to_id_map[field]['id_to_label'][x] for x in predicted]
-        
         if split == 'validation':
             i_plot = i
         else:
@@ -450,23 +403,8 @@ out_path = image_dir / f"bin_fields.png"
 plt.savefig(out_path, dpi=300, bbox_inches="tight")
 saved_paths.append(out_path)
 
-imgs = [Image.open(p) for p in saved_paths]
+combine_and_save(saved_paths, image_dir / "binary_fields.png")
 
-# Altezza totale
-extra_h = int(imgs[0].height / 20)
-total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
-# Larghezza massima
-max_w = max(img.width for img in imgs) + 2 * extra_h
-combined = Image.new("RGB", (max_w, total_h), color="white")
-
-y_offset = extra_h
-for img in imgs:
-    combined.paste(img, (extra_h, y_offset))
-    y_offset += img.height + extra_h
-
-combined.save(image_dir / "binary_fields.png")
-for p in saved_paths:
-    p.unlink(missing_ok=True)
 
 
 ################
@@ -513,23 +451,15 @@ fig.text(0.5, (bottom + (top-bottom)/(2+hspace) + 0.05), "Test split",
 
 for i, field in enumerate(clas_fields):
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            if field not in ANN_MODEL.model_fields.keys():
-                continue
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
-                    predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
-        else:
-            predicted = np.array(results[split]['predicted'][field])
-            actual = np.array(results[split]['actual'][field])
+        if field not in ANN_MODEL.model_fields.keys():
+            continue
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(label_to_id_map[field]['label_to_id'][row['actual'][field]])
+                predicted.append(label_to_id_map[field]['label_to_id'][row['prediction'][field]])
         if len(predicted) == 0:
             continue
-        if USE_SCORES:
-            # Convert scores to hard predictions
-            predicted = np.argmax(predicted, axis=-1)
-        
         # Convert to strings
         actual    = [label_to_id_map[field]['id_to_label'][x] for x in actual]
         predicted = [label_to_id_map[field]['id_to_label'][x] for x in predicted]
@@ -547,52 +477,12 @@ out_path = image_dir / f"clas_fields.png"
 plt.savefig(out_path, dpi=300, bbox_inches="tight")
 saved_paths.append(out_path)
 
-imgs = [Image.open(p) for p in saved_paths]
-
-# Altezza totale
-extra_h = int(imgs[0].height / 20)
-total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
-# Larghezza massima
-max_w = max(img.width for img in imgs) + 2 * extra_h
-combined = Image.new("RGB", (max_w, total_h), color="white")
-
-y_offset = extra_h
-for img in imgs:
-    combined.paste(img, (extra_h, y_offset))
-    y_offset += img.height + extra_h
-
-combined.save(image_dir / "classification_fields.png")
-for p in saved_paths:
-    p.unlink(missing_ok=True)
-
+combine_and_save(saved_paths, image_dir / "classification_fields.png")
 
 
 ############
 # Multilabel
 ############
-def get_best_thresholds_multilabel(y_true: np.ndarray, y_pred_probs: np.ndarray) -> np.ndarray:
-    """
-    Calcola la soglia ottimale per ciascuna classe in un problema multilabel.
-    Args:
-        y_true: array shape (num_samples, num_classes), valori 0/1
-        y_pred_probs: array shape (num_samples, num_classes), probabilità predette
-        
-    Returns:
-        thresholds: array shape (num_classes,), soglia ottimale per ciascuna classe
-    """
-    num_classes = y_true.shape[1]
-    thresholds = []
-
-    for i in range(num_classes):
-        precisions, recalls, ths = precision_recall_curve(y_true[:, i], y_pred_probs[:, i])
-        f1_scores = 2 * (precisions * recalls) / (precisions + recalls + 1e-8)
-        if len(ths) > 0:
-            thresholds.append(ths[np.argmax(f1_scores)])
-        else:
-            thresholds.append(0.5)  # fallback se la classe è assente
-    return thresholds
-
-
 saved_paths = []
 for field in multi_fields:
     # Plotting
@@ -635,24 +525,16 @@ for field in multi_fields:
             ha="center", va="center", fontsize='x-large', fontweight="bold")    
 
     thresholds = None
-    if USE_SCORES:
-        # Optimal thresholds
-        thresholds = get_best_thresholds_multilabel(np.array(results['validation']['actual'][field]),
-                                                    np.array(results['validation']['predicted'][field]))
     for split in ('validation', 'test'):
-        if USE_JSONL:
-            if field not in ANN_MODEL.model_fields.keys():
-                continue
-            actual, predicted = [], []
-            for row in results:
-                if row['split'] == split:
-                    actual.append(model_utils.flags_to_bits(row['actual'][field]))
-                    predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
-            actual = np.array(actual)
-            predicted = np.array(predicted)
-        else:
-            predicted = np.array(results[split]['predicted'][field])
-            actual = np.array(results[split]['actual'][field])
+        if field not in ANN_MODEL.model_fields.keys():
+            continue
+        actual, predicted = [], []
+        for row in results:
+            if row['split'] == split:
+                actual.append(model_utils.flags_to_bits(row['actual'][field]))
+                predicted.append(model_utils.flags_to_bits(row['prediction'][field]))
+        actual = np.array(actual)
+        predicted = np.array(predicted)
         if len(predicted) == 0:
             continue
         if thresholds is not None:
@@ -670,21 +552,6 @@ for field in multi_fields:
     plt.savefig(out_path, dpi=300, bbox_inches="tight")
     saved_paths.append(out_path)
         
-imgs = [Image.open(p) for p in saved_paths]
+combine_and_save(saved_paths, image_dir / "multilabel_fields.png")
 
-# Altezza totale
-extra_h = int(imgs[0].height / 20)
-total_h = int(sum(img.height + extra_h for img in imgs) + extra_h)
-# Larghezza massima
-max_w = max(img.width for img in imgs) + 2 * extra_h
-combined = Image.new("RGB", (max_w, total_h), color="white")
-
-y_offset = extra_h
-for img in imgs:
-    combined.paste(img, (extra_h, y_offset))
-    y_offset += img.height + extra_h
-
-combined.save(image_dir / "multilabel_fields.png")
-for p in saved_paths:
-    p.unlink(missing_ok=True)
 
