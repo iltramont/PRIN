@@ -110,6 +110,14 @@ def infiltrazione_tessuto_adiposo_score(actual, prediction) -> float:
     else:
         return 0.0
 
+def morfologia_score(actual, prediction) -> float:
+    solid = [constants.Morfologia.SOLIDO_POLIPOIDE.value, constants.Morfologia.SOLIDO_ANULARE.value]
+    if actual == prediction:
+        return 1.0
+    elif actual in solid and prediction in solid:
+        return 0.5
+    else:
+        return 0.0
 
 def compare_prediction(actual: BaseModel, prediction: BaseModel, weights=constants.FEATURE_WEIGHTS) -> pd.DataFrame:
     reg_fields = model_utils.get_regression_fields(type(actual))
@@ -137,6 +145,9 @@ def compare_prediction(actual: BaseModel, prediction: BaseModel, weights=constan
         elif f == "stadio_T":
             w = weights[f]
             row = [f, a, p, stadio_t_score(a, p), w]
+        elif f == "morfologia":
+            w = weights[f]
+            row = [f, a, p, morfologia_score(a, p), w]
         elif f == "infiltrazione_tessuto_adiposo":
             w = weights[f]
             row = [f, a, p, infiltrazione_tessuto_adiposo_score(a, p), w]

@@ -40,7 +40,7 @@ OPENAI_GPT_5_4      = "gpt-5.4-2026-03-05"
 
 # Tuned models
 TUNED_GPT_4_1_NANO = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:DNDCPvfn"
-TUNED_GPT_4_1_NANO_OVERSAMPLE = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor:DNTiYe0j"
+TUNED_GPT_4_1_NANO_OVERSAMPLE = "ft:gpt-4.1-nano-2025-04-14:luca-tramonti:report-extractor-oversampling:DPqaFyZI:ckpt-step-486"
 TUNED_GPT_4_1 = "ft:gpt-4.1-2025-04-14:luca-tramonti:report-extractor:DOcFh6T3"
 
 OPENAI_TRAIN_FILE_NAME      = "openai_train.jsonl"
@@ -302,7 +302,7 @@ FEATURE_WEIGHTS = {
     #"ore_inizio": 1,
     #"ore_fine": 1,
     'ore': 0.2,  # meno importante
-    "spessore_parietale": 1, # Meno importante
+    "spessore_parietale": 0.5, # Meno importante
     "estensione_cranio_caudale": 1, 
     "distanza_oai": 1,
     "posizione": 1, 
@@ -311,16 +311,15 @@ FEATURE_WEIGHTS = {
     "infiltrazione_sfinteri": 1,
     "infiltrazione_organi_extra": 1, 
     "infiltrazione_organi_dettagli": 0.5, 
-    "coinvolgimento_riflessione_peritoneale": 1, 
+    "coinvolgimento_riflessione_peritoneale": 0.5, 
     "coinvolgimento_fascia_mesorettale": 0.5, 
-    "numero_linfonodi_non_conosciuto": 1, # meno importante
+    "numero_linfonodi_non_conosciuto": 0.5, # meno importante
     "linfonodi_sospetti": 0.5,
     "sedi_linfonodi": 1, 
     "depositi_tumorali": 1,
     "emvi": 1, 
     "stadio_T": 1,
     "stadio_N": 1,
-    "stadio_N1c": 1, 
     "mrf": 0.5,
     "metastasi": 1, 
 }
