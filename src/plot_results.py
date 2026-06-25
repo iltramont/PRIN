@@ -36,8 +36,8 @@ base_dir = Path(__file__).parent.parent
 RESULTS_FILE = "new_results_gpt-4.1-nano_FT_OS.jsonl"
 MODEL_NAME_PLOT = "GPT 4.1 Nano FT OS"
 
-os.makedirs(base_dir / "immagini" / "new_gpt-4.1-nano_FT_OS", exist_ok=True)
-image_dir = base_dir / "immagini" / "new_gpt-4.1-nano_FT_OS"
+os.makedirs(base_dir / "figures" / "new_gpt-4.1-nano_FT_OS", exist_ok=True)
+image_dir = base_dir / "figures" / "new_gpt-4.1-nano_FT_OS"
 
 ANN_MODEL = constants.RectalCancerStagingData
 
