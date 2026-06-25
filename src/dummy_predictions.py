@@ -13,7 +13,6 @@ import constants
 from sklearn.dummy import DummyClassifier, DummyRegressor
 import numpy as np
 
-from MAIN.model_utils import from_series_to_basemodel
 from model_utils import (
     get_binary_classification_fields,
     get_classification_fields,

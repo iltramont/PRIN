@@ -170,8 +170,14 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# Non trcciare file con possibili dati sensibili
+# Non tracciare file con possibili dati sensibili
 data/confidential/
 
-wandb
-saved_models
+# Weights & Biases
+wandb/
+
+# Saved models
+saved_models/
+
+# macOS
+.DS_Store
