@@ -301,27 +301,27 @@ FEATURE_WEIGHTS = {
     "morfologia": 1,
     #"ore_inizio": 1,
     #"ore_fine": 1,
-    'ore': 0.2,  # meno importante
-    "spessore_parietale": 0.5, # Meno importante
+    'ore': 1,  # meno importante
+    "spessore_parietale": 1, # Meno importante
     "estensione_cranio_caudale": 1, 
-    "distanza_oai": 1,
-    "posizione": 1, 
-    "riflessione_peritoneale_anteriore": 1, 
-    "infiltrazione_tessuto_adiposo": 1,
-    "infiltrazione_sfinteri": 1,
-    "infiltrazione_organi_extra": 1, 
-    "infiltrazione_organi_dettagli": 0.5, 
-    "coinvolgimento_riflessione_peritoneale": 0.5, 
-    "coinvolgimento_fascia_mesorettale": 0.5, 
-    "numero_linfonodi_non_conosciuto": 0.5, # meno importante
-    "linfonodi_sospetti": 0.5,
-    "sedi_linfonodi": 1, 
-    "depositi_tumorali": 1,
-    "emvi": 1, 
-    "stadio_T": 1,
-    "stadio_N": 1,
-    "mrf": 0.5,
-    "metastasi": 1, 
+    "distanza_oai": 2,
+    "posizione": 2, 
+    "riflessione_peritoneale_anteriore": 2, 
+    "infiltrazione_tessuto_adiposo": 3,
+    "infiltrazione_sfinteri": 3,
+    "infiltrazione_organi_extra": 3, 
+    "infiltrazione_organi_dettagli": 2, 
+    "coinvolgimento_riflessione_peritoneale": 3, 
+    "coinvolgimento_fascia_mesorettale": 1, 
+    "numero_linfonodi_non_conosciuto": 2, # meno importante
+    "linfonodi_sospetti": 2,
+    "sedi_linfonodi": 2, 
+    "depositi_tumorali": 3,
+    "emvi": 2, 
+    "stadio_T": 3,
+    "stadio_N": 3,
+    "mrf": 1,
+    "metastasi": 3, 
 }
 
 
